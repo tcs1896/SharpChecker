@@ -12,13 +12,15 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Rename;
 using Microsoft.CodeAnalysis.Text;
+using Microsoft.CodeAnalysis.Formatting;
+using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace CSharpQual
 {
     [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(CSharpQualCodeFixProvider)), Shared]
     public class CSharpQualCodeFixProvider : CodeFixProvider
     {
-        private const string title = "Make uppercase";
+        private const string title = "Fix String Format";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
@@ -39,35 +41,87 @@ namespace CSharpQual
             var diagnostic = context.Diagnostics.First();
             var diagnosticSpan = diagnostic.Location.SourceSpan;
 
-            // Find the type declaration identified by the diagnostic.
-            var declaration = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<TypeDeclarationSyntax>().First();
+            // Find the type invocationExpression identified by the diagnostic.
+            var invocationExpr = root.FindToken(diagnosticSpan.Start).Parent.AncestorsAndSelf().OfType<InvocationExpressionSyntax>().First();
 
             // Register a code action that will invoke the fix.
             context.RegisterCodeFix(
                 CodeAction.Create(
                     title: title,
-                    createChangedSolution: c => MakeUppercaseAsync(context.Document, declaration, c),
+                    createChangedDocument: c => FixStringFormatAsync(context.Document, invocationExpr, c),
                     equivalenceKey: title),
                 diagnostic);
         }
 
-        private async Task<Solution> MakeUppercaseAsync(Document document, TypeDeclarationSyntax typeDecl, CancellationToken cancellationToken)
+        private async Task<Document> FixStringFormatAsync(Document document, InvocationExpressionSyntax invocationExpr, CancellationToken cancellationToken)
         {
-            // Compute new uppercase name.
-            var identifierToken = typeDecl.Identifier;
-            var newName = identifierToken.Text.ToUpperInvariant();
-
-            // Get the symbol representing the type to be renamed.
+            //This code is largely the same as that in the analyzer, except we already know we have
+            //all the required elements because our analyzer was triggered, and so we can remove 
+            //all the conditional logic.
             var semanticModel = await document.GetSemanticModelAsync(cancellationToken);
-            var typeSymbol = semanticModel.GetDeclaredSymbol(typeDecl, cancellationToken);
+            var memberAccessExpr =
+              invocationExpr.Expression as MemberAccessExpressionSyntax;
+            var memberSymbol =
+              semanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IMethodSymbol;
+            var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
+            var patternLiteral = argumentList.Arguments[0].Expression as LiteralExpressionSyntax;
+            var patternOpt = semanticModel.GetConstantValue(patternLiteral);
+            var pattern = patternOpt.Value as string;
+            int maxValue = CSharpQualAnalyzer.GetMaxValueInStringPattern(pattern);
 
-            // Produce a new solution that has all references to that type renamed, including the declaration.
-            var originalSolution = document.Project.Solution;
-            var optionSet = originalSolution.Workspace.Options;
-            var newSolution = await Renamer.RenameSymbolAsync(document.Project.Solution, typeSymbol, newName, optionSet, cancellationToken).ConfigureAwait(false);
 
-            // Return the new solution with the now-uppercase type name.
-            return newSolution;
+
+            //SeparatedSyntaxList<ArgumentListSyntax> newArgs = new SeparatedSyntaxList<ArgumentListSyntax>();
+            //string argumentString = $"\"{patternLiteral}\"";
+            if (maxValue > 0)
+            {
+                SyntaxNodeOrToken[] args = new SyntaxNodeOrToken[maxValue + 2];
+                args[0] = Argument(
+                            LiteralExpression(
+                                SyntaxKind.StringLiteralExpression,
+                                Literal(patternLiteral.ToString())));
+
+                for (int i = 1; i < maxValue + 2; i++)
+                {
+                    //argumentString += ", String.Empty";
+                    //if(argumentList.Arguments.Count < i)
+                    //{
+                    //    //Add empty arguments to avoid a runtime exception
+                    //    newLiteral.WithArguments()
+                    //}
+                    args[i] = Argument(
+                            LiteralExpression(
+                                SyntaxKind.StringLiteralExpression,
+                                Literal("")));
+                }
+                try {
+                    //var newLiteral = ExpressionStatement(
+                    //                InvocationExpression(
+                    //                    MemberAccessExpression(
+                    //                        SyntaxKind.SimpleMemberAccessExpression,
+                    //                        IdentifierName("String"),
+                    //                        IdentifierName("Format"))).WithArgumentList(
+                    //ArgumentList(SeparatedList<ArgumentSyntax>(args))));
+
+                    //Allow the compiler to create the appropriate syntax nodes by parsing a string literal
+                    var newLiteral = SyntaxFactory.ParseExpression("\"valid regex\"")
+                        .WithLeadingTrivia(patternLiteral.GetLeadingTrivia())
+                        .WithTrailingTrivia(patternLiteral.GetTrailingTrivia())
+                        //Adding the "Formatter" annotation tells Roslyn that we have added nodes, and we 
+                        //would like them formatted according to the user's style settings
+                        .WithAdditionalAnnotations(Formatter.Annotation);
+
+                    //Now we begin the process of replacing the old node with the new one
+                    var root = await document.GetSyntaxRootAsync();
+                    var newRoot = root.ReplaceNode(patternLiteral, newLiteral);
+                    var newDocument = document.WithSyntaxRoot(newRoot);
+                    return newDocument;
+                }catch(Exception ex)
+                {
+                }
+            }
+
+            return document;
         }
     }
 }

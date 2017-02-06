@@ -57,6 +57,24 @@ namespace CSharpQual
 
             //Dig into the first argument to see how many arguments are expected in the surface langauge
             int maxValue = 0;
+            maxValue = GetMaxValueInStringPattern(pattern);
+            //Now that we know the maximum value, check to make sure we have exactly that number of
+            //arguments in addition to the one which specifies the pattern
+            if (argumentList.Arguments.Count != (maxValue + 2))
+            {
+                //Create the appropriate diagnostic, span for the token we want to underline, and message
+                var diagnostic =
+                    Diagnostic.Create(Rule,
+                    patternLiteral.GetLocation(), Description);
+                //Now we register this diagnostic with visual studio
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+
+        public static int GetMaxValueInStringPattern(string pattern)
+        {
+            int maxValue = 0;
+
             foreach (Match m in Regex.Matches(pattern, "{.*?}"))
             {
                 string stringMatch = m.Value.Replace("{", String.Empty).Replace("}", String.Empty);
@@ -69,18 +87,8 @@ namespace CSharpQual
                     }
                 }
             }
-            //Now that we know the maximum value, check to make sure we have exactly that number of
-            //arguments in addition to the one which specifies the pattern
-            if(argumentList.Arguments.Count != (maxValue + 2))
-            {
-                //Create the appropriate diagnostic, span for the token we want to underline, and message
-                var diagnostic =
-                    Diagnostic.Create(Rule,
-                    patternLiteral.GetLocation(), Description);
-                //Now we register this diagnostic with visual studio
-                context.ReportDiagnostic(diagnostic);
-            }
+
+            return maxValue;
         }
-        
     }
 }
