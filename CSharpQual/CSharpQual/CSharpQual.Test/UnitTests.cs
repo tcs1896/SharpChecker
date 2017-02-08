@@ -26,19 +26,31 @@ namespace CSharpQual.Test
         public void TestMethod2()
         {
             var test = @"
-    using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
-    using System.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
-    namespace ConsoleApplication1
+namespace CSQSandbox
+{
+    class Program
     {
-        class TypeName
-        {   
+        static void Main(string[] args)
+        {
+            //This doesn't need to format anything
+            Console.WriteLine(String.Format(""No value to replace""));
+            //This should be fine
+            Console.WriteLine(String.Format(""This {0} formatted {1}"", ""is a"", ""test""));
+            //Here we have too many arguments
+            Console.WriteLine(String.Format(""This {0} formatted {1}"", ""is a"", ""test"", ""more""));
+            //The number of arguments here are fewer than necessary
+            Console.WriteLine(String.Format(""This {0} formatted {1}"", ""is a""));
+            //The tokens to replace are not numbered correctly
+            Console.WriteLine(String.Format(""This {0} formatted {3}"", ""is a""));
         }
-    }";
+    }
+}";
             var expected = new DiagnosticResult
             {
                 Id = "CSharpQual",

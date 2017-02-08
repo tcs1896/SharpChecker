@@ -73,7 +73,7 @@ namespace CSharpQual
 
         public static int GetMaxValueInStringPattern(string pattern)
         {
-            int maxValue = 0;
+            int maxValue = -1;
 
             foreach (Match m in Regex.Matches(pattern, "{.*?}"))
             {

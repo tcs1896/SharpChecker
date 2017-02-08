@@ -69,56 +69,35 @@ namespace CSharpQual
             var pattern = patternOpt.Value as string;
             int maxValue = CSharpQualAnalyzer.GetMaxValueInStringPattern(pattern);
 
-
-
-            //SeparatedSyntaxList<ArgumentListSyntax> newArgs = new SeparatedSyntaxList<ArgumentListSyntax>();
-            //string argumentString = $"\"{patternLiteral}\"";
+            //If the pattern in the String.Format statement has no tokens to replace we do not present an error
             if (maxValue > 0)
             {
-                SyntaxNodeOrToken[] args = new SyntaxNodeOrToken[maxValue + 2];
-                args[0] = Argument(
-                            LiteralExpression(
-                                SyntaxKind.StringLiteralExpression,
-                                Literal(patternLiteral.ToString())));
+                //Add the pattern value back to the list of arguments
+                SeparatedSyntaxList<ArgumentSyntax> args = new SeparatedSyntaxList<ArgumentSyntax>();
+                args = args.Add(Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(pattern))));
 
+                //Repopulate the arguments, and add empty strings for any additional replacment tokens in the pattern
                 for (int i = 1; i < maxValue + 2; i++)
                 {
-                    //argumentString += ", String.Empty";
-                    //if(argumentList.Arguments.Count < i)
-                    //{
-                    //    //Add empty arguments to avoid a runtime exception
-                    //    newLiteral.WithArguments()
-                    //}
-                    args[i] = Argument(
-                            LiteralExpression(
-                                SyntaxKind.StringLiteralExpression,
-                                Literal("")));
+                    if (i < argumentList.Arguments.Count)
+                    {
+                        var argLiteral = argumentList.Arguments[i].Expression as LiteralExpressionSyntax;
+                        var argOpt = semanticModel.GetConstantValue(argLiteral);
+                        var arg = argOpt.Value as string;
+                        args = args.Add(Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(arg))));
+                    }
+                    else
+                    {
+                        args = args.Add(Argument(LiteralExpression(SyntaxKind.StringLiteralExpression, Literal(""))));
+                    }
                 }
-                try {
-                    //var newLiteral = ExpressionStatement(
-                    //                InvocationExpression(
-                    //                    MemberAccessExpression(
-                    //                        SyntaxKind.SimpleMemberAccessExpression,
-                    //                        IdentifierName("String"),
-                    //                        IdentifierName("Format"))).WithArgumentList(
-                    //ArgumentList(SeparatedList<ArgumentSyntax>(args))));
 
-                    //Allow the compiler to create the appropriate syntax nodes by parsing a string literal
-                    var newLiteral = SyntaxFactory.ParseExpression("\"valid regex\"")
-                        .WithLeadingTrivia(patternLiteral.GetLeadingTrivia())
-                        .WithTrailingTrivia(patternLiteral.GetTrailingTrivia())
-                        //Adding the "Formatter" annotation tells Roslyn that we have added nodes, and we 
-                        //would like them formatted according to the user's style settings
-                        .WithAdditionalAnnotations(Formatter.Annotation);
-
-                    //Now we begin the process of replacing the old node with the new one
-                    var root = await document.GetSyntaxRootAsync();
-                    var newRoot = root.ReplaceNode(patternLiteral, newLiteral);
-                    var newDocument = document.WithSyntaxRoot(newRoot);
-                    return newDocument;
-                }catch(Exception ex)
-                {
-                }
+                //Create a new immutable document by instantiating a new one with the new argument list
+                ArgumentListSyntax newArgumentListSyntax = argumentList.WithArguments(args);
+                var root = await document.GetSyntaxRootAsync();
+                var newRoot = root.ReplaceNode(argumentList, newArgumentListSyntax);
+                var newDocument = document.WithSyntaxRoot(newRoot);
+                return newDocument;
             }
 
             return document;
