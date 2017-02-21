@@ -49,7 +49,7 @@ namespace SharpChecker
             //        title: title,
             //        createChangedDocument: c => FixStringFormatAsync(context.Document, invocationExpr, c),
             //        equivalenceKey: title),
-            //    diagnostic);
+            //    diagnostic); 
         }
 
         private async Task<Document> FixStringFormatAsync(Document document, InvocationExpressionSyntax invocationExpr, CancellationToken cancellationToken)

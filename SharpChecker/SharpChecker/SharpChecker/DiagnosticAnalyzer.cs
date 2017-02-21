@@ -25,7 +25,7 @@ namespace SharpChecker
 
         public override void Initialize(AnalysisContext context)
         {
-            // TODO: Consider registering other actions that act on syntax instead of or in addition to symbols
+            // TODO: Consider registering other actions that act on syntax instead of or in addition to symbols 
             // See https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Analyzer%20Actions%20Semantics.md for more information
             context.RegisterSyntaxNodeAction<SyntaxKind>(AnalyzeNode, SyntaxKind.InvocationExpression);
         }
@@ -49,8 +49,7 @@ namespace SharpChecker
             var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             //If we are dealing with the correct namespace then bail
             if (!memberSymbol?.ToString().StartsWith("EncryptedSandbox.Program.sendOverInternet") ?? true) return;
-            //Grab the argument list so we can interrogate it
-            var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
+
 
             //Check to see if any of the formal parameters of the method being invoked have associated attributes
             //In order to do this, we need to lookup the appropriate method signature.  However, given dynamic
@@ -69,7 +68,38 @@ namespace SharpChecker
                     var myName = $"The attr {attr.AttributeClass}";
                     if (attr.AttributeClass.ToString() == "EncryptedSandbox.EncryptedAttribute")
                     {
-                        bool hitLogic = true;
+                        //Locate the argument which corresponds to the one with the attribute and 
+                        //ensure that it also has the attribute
+                        bool foundMatch = false;
+
+                        //Grab the argument list so we can interrogate it
+                        var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
+                        var arg0 = argumentList.Arguments[0].Expression as IdentifierNameSyntax;
+                        //var argSymbol = context.SemanticModel.GetDeclaredSymbol(argumentList.Arguments[0]); //GetSymbolInfo(argumentList.Arguments[0]).Symbol as IPropertySymbol;
+                        SymbolInfo info = context.SemanticModel.GetSymbolInfo(arg0);
+                        ISymbol symbol = info.Symbol;
+                        if (symbol != null)
+                        {
+                            var argAttrs = symbol.GetAttributes();
+
+                            foreach (var argAttr in argAttrs)
+                            {
+                                if (attr.AttributeClass.ToString() == "EncryptedSandbox.EncryptedAttribute")
+                                {
+                                    foundMatch = true;
+                                }
+                            }
+
+                            //If we haven't found a match then present a diagnotic error
+                            if (foundMatch)
+                            {
+                                string message = "We found a match!";
+                            }
+                            else
+                            {
+                                string message = "There may be a problem";
+                            }
+                        }
                     }
 
                     //EncryptedAttribute encrAttr = attr as EncryptedAttribute;
