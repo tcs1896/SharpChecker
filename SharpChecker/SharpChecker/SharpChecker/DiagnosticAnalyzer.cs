@@ -25,40 +25,115 @@ namespace SharpChecker
 
         public override void Initialize(AnalysisContext context)
         {
-            context.RegisterSyntaxNodeAction<SyntaxKind>(AnalyzeNode, SyntaxKind.InvocationExpression);
+            //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
+            //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
+            //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
+            context.RegisterSyntaxNodeAction<SyntaxKind>(AnalyzeNode, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
         }
 
         private void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
-            //We can safely cast here because we filter above when we register
-            var invocationExpr = (InvocationExpressionSyntax)context.Node;
+            //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
 
+            var invocationExpr = context.Node as InvocationExpressionSyntax;
+            if (invocationExpr != null)
+            {
+                AnalyzeInvocationExpr(context, invocationExpr);
+            }
+            else
+            {
+                //We could safely cast right now, but if the filter above changes in the future we will not be able to do so
+                var assignmentExpression = context.Node as AssignmentExpressionSyntax;
+                if (assignmentExpression != null)
+                {
+                    AnalyzeAssignmentExpression(context, assignmentExpression);
+                }
+            }
+        }
+
+        /// <summary>
+        /// If the variable to which we are assigning a value has an annotation, then we need to verify that the
+        /// expression to which it is assigned with yeild a value with the appropriate annoation
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="assignmentExpression"></param>
+        private void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
+        {
+            // First check the variable to which we are assigning
+            var identifierName = assignmentExpression.Left as IdentifierNameSyntax;
+
+            // Get the associated symbol
+            SymbolInfo info = context.SemanticModel.GetSymbolInfo(identifierName);
+            ISymbol symbol = info.Symbol;
+            if (symbol != null)
+            {
+                // Check if there are attributes associated with this symbol
+                var argAttrs = symbol.GetAttributes();
+
+                foreach (var argAttr in argAttrs)
+                {
+                    if (argAttr.AttributeClass.ToString() == attributeName)
+                    {
+                        // We have found an attribute, so now we verify the RHS
+                        var invocationExpr = assignmentExpression.Right as InvocationExpressionSyntax;
+                        if (invocationExpr != null)
+                        {
+                            var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
+                            // This will lookup the method associated with the invocation expression
+                            var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+
+                            if (memberSymbol != null)
+                            {
+                                // Now we check the return type to see if there is an attribute assigned
+                                bool foundMatch = false;
+                                var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
+                                foreach (var retAttr in returnTypeAttrs)
+                                {
+                                    if (retAttr.AttributeClass.ToString() == attributeName)
+                                    {
+                                        foundMatch = true;
+                                    }
+                                }
+
+                                //If we haven't found a match then present a diagnotic error
+                                if (!foundMatch)
+                                {
+                                    var diagnostic = Diagnostic.Create(Rule, invocationExpr.GetLocation(), Description);
+                                    //Now we register this diagnostic with visual studio
+                                    context.ReportDiagnostic(diagnostic);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// If we are invoking a method which has attributes on its formal parameters, then we need to verify that
+        /// the arguments passed abide by these annotations
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="invocationExpr"></param>
+        private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
+        {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-            //Attempt to grab a memberAccessExpr.  In this case Regex.Match
-            //var memberAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
-            //Checking the syntax is fast, and this is preferred as an initial mechanism because analyzers
-            //may be executed many times a second as text is entered into an editor
-            //if (memberAccessExpr?.Name.ToString() != "Format") return;
-            //if (memberAccessExpr == null) return;
 
-            if (identifierNameExpr?.Identifier.ToString() != "sendOverInternet") return;
+            //TODO: Remove this and make the subsequent code more robust
+            if (identifierNameExpr?.Identifier.ToString() != "SendOverInternet") return;
 
             //This will lookup the method associated with the invocation expression
             var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+            //TODO: Remove this and make the subsequent code more robust
             //If we are not dealing with the correct namespace then bail
-            if (!memberSymbol?.ToString().StartsWith("EncryptedSandbox.Program.sendOverInternet") ?? true) return;
+            if (!memberSymbol?.ToString().StartsWith("EncryptedSandbox.Program.SendOverInternet") ?? true) return;
 
 
             //Check to see if any of the formal parameters of the method being invoked have associated attributes
-            //In order to do this, we need to lookup the appropriate method signature.  However, given dynamic
-            //dispatch it doesn't seem possible to lookup the specific instance
-
-            //This might be used to the attributes of a method
-            //memberSymbol.GetAttributes();
-
+            //In order to do this, we need to lookup the appropriate method signature.  
             ImmutableArray<IParameterSymbol> paramSymbols = memberSymbol.Parameters;
             //Iterate over the parameters with an explicit index so we can compare the appropriate argument below
-            for(int i = 0; i < paramSymbols.Count(); i++)
+            for (int i = 0; i < paramSymbols.Count(); i++)
             {
                 //Get the formal parameter
                 var param = paramSymbols[i];
@@ -94,7 +169,7 @@ namespace SharpChecker
 
                                     foreach (var argAttr in argAttrs)
                                     {
-                                        if (attr.AttributeClass.ToString() == attributeName)
+                                        if (argAttr.AttributeClass.ToString() == attributeName)
                                         {
                                             foundMatch = true;
                                         }
@@ -122,38 +197,8 @@ namespace SharpChecker
                             }
                         }
                     }
-
-                    //EncryptedAttribute encrAttr = attr as EncryptedAttribute;
-                    //if (encrAttr != null)
-                    //{
-                    //    Console.WriteLine($"Method {met.Name} has parameter {mArg.Name} with the {nameof(EncryptedAttr)}");
-                    //}
                 }
-            };
-
-            ////Make sure the first argument is a string literal.
-            //var patternLiteral = argumentList.Arguments[0].Expression as LiteralExpressionSyntax;
-            //if (patternLiteral == null) return;
-            ////Now that we know its a literal we can retrieve the value
-            //var patternOpt = context.SemanticModel.GetConstantValue(patternLiteral);
-            //if (!patternOpt.HasValue) return;
-            //var pattern = patternOpt.Value as string;
-            //if (pattern == null) return;
-
-            ////Dig into the first argument to see how many arguments are expected in the surface langauge
-            //int maxValue = 0;
-            //maxValue = 1;
-            ////Now that we know the maximum value, check to make sure we have exactly that number of
-            ////arguments in addition to the one which specifies the pattern
-            //if (argumentList.Arguments.Count != (maxValue + 2))
-            //{
-            //    //Create the appropriate diagnostic, span for the token we want to underline, and message
-            //    var diagnostic =
-            //        Diagnostic.Create(Rule,
-            //        patternLiteral.GetLocation(), Description);
-            //    //Now we register this diagnostic with visual studio
-            //    context.ReportDiagnostic(diagnostic);
-            //}
+            }
         }
     }
 }

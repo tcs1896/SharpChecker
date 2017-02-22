@@ -24,9 +24,15 @@ namespace EncryptedSandbox
         }
 
         // Only send encrypted data!
-        public void sendOverInternet([Encrypted] String msg)
+        public void SendOverInternet([Encrypted] String msg)
         {
             // Send the data over an insecure medium
+        }
+
+        public string RemoveSpecialChars(string original)
+        {
+            // Remove the special characters
+            return original;
         }
 
         [Encrypted]
@@ -40,15 +46,18 @@ namespace EncryptedSandbox
             //We want to verify this assignment.  The return type of Encrypt is annotated, and
             //will match the annotation of Ciphertext, so this should be accepted
             Ciphertext = Encrypt(plaintext);
+            //This should cause the diagnostic to fire because the return type of the method
+            //doesn't have the appropriate attribute
+            Ciphertext = RemoveSpecialChars(plaintext);
 
             //This should be an allowed usage because Ciphertext has the [Encrypted] attribute
             //At this call site we need to determine that the method expects an value with an attribute, then determine if the value
             //being passed has this attribute (or eventually a subtype attribute).
-            sendOverInternet(Ciphertext);
+            SendOverInternet(Ciphertext);
             //This should generate an error because 'RawText' does not have the [Encrypted] attribute
-            sendOverInternet(RawText);
+            SendOverInternet(RawText);
             //This is also unnacceptable
-            sendOverInternet("");
+            SendOverInternet("");
         }
     }
 }
