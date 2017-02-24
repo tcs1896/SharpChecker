@@ -40,6 +40,9 @@ namespace EncryptedSandbox
 
         public string RawText { get; set; }
 
+        [Encrypted]
+        public int Result { get; set; }
+
         void sendText()
         {
             string plaintext = "Anyone can read this!";
@@ -56,8 +59,15 @@ namespace EncryptedSandbox
             SendOverInternet(Ciphertext);
             //This should generate an error because 'RawText' does not have the [Encrypted] attribute
             SendOverInternet(RawText);
-            //This is also unnacceptable
+            //These are also unnacceptable
             SendOverInternet("");
+            //SendOverInternet(String.Empty); TODO
+
+            //Introduce a static method call
+            Result = Utilities.ExecuteQuery("Update user.workstatus set status='Hired'");
+
+            //We permit Encrypted values being assigned to unencrypted
+            RawText = Encrypt(plaintext);
         }
     }
 }

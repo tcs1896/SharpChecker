@@ -34,7 +34,6 @@ namespace SharpChecker
         private void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
             //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
-
             var invocationExpr = context.Node as InvocationExpressionSyntax;
             if (invocationExpr != null)
             {
@@ -78,9 +77,23 @@ namespace SharpChecker
                         var invocationExpr = assignmentExpression.Right as InvocationExpressionSyntax;
                         if (invocationExpr != null)
                         {
+                            // Used to store the method symbol associated with the invocation expression
+                            IMethodSymbol memberSymbol = null;
+
                             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-                            // This will lookup the method associated with the invocation expression
-                            var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+                            if (identifierNameExpr != null)
+                            {
+                                memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+                            }
+                            else
+                            {
+                                //If we don't have a local method invocation, we may have a static or instance method invocation
+                                var memberAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
+                                if (memberAccessExpr != null)
+                                {
+                                    memberSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IMethodSymbol;
+                                }
+                            }
 
                             if (memberSymbol != null)
                             {
@@ -118,15 +131,12 @@ namespace SharpChecker
         private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-
-            //TODO: Remove this and make the subsequent code more robust
-            if (identifierNameExpr?.Identifier.ToString() != "SendOverInternet") return;
+            if (identifierNameExpr == null) return;
 
             //This will lookup the method associated with the invocation expression
             var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
-            //TODO: Remove this and make the subsequent code more robust
-            //If we are not dealing with the correct namespace then bail
-            if (!memberSymbol?.ToString().StartsWith("EncryptedSandbox.Program.SendOverInternet") ?? true) return;
+            //If we failed to lookup the symbol then bail
+            if (memberSymbol == null) return;
 
 
             //Check to see if any of the formal parameters of the method being invoked have associated attributes
@@ -193,6 +203,16 @@ namespace SharpChecker
                                     var diagnostic = Diagnostic.Create(Rule, argLit.GetLocation(), Description);
                                     //Now we register this diagnostic with visual studio
                                     context.ReportDiagnostic(diagnostic);
+                                }
+                                else
+                                {
+                                    //TODO: Need to be able to lookup properties
+                                    //var argMemAccess = argumentList.Arguments[i].Expression as MemberAccessExpressionSyntax;
+                                    //if(argMemAccess != null)
+                                    //{
+                                    //    memberSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IPropertySymbol;
+
+                                    //}
                                 }
                             }
                         }
