@@ -11,8 +11,8 @@ namespace EncryptedSandbox
     {
         static void Main(string[] args)
         {
-            new Program().sendText();
-            Console.ReadLine();
+            //new Program().sendText();
+            //Console.ReadLine();
         }
 
         [return:Encrypted]
@@ -29,10 +29,15 @@ namespace EncryptedSandbox
             // Send the data over an insecure medium
         }
 
-        public string RemoveSpecialChars(string original)
+        public string RemoveSpecialChars(string original, int charCode)
         {
             // Remove the special characters
             return original;
+        }
+
+        public Program ProgramFactory()
+        {
+            //return new EncryptedSandbox.Program();
         }
 
         [Encrypted]
@@ -48,10 +53,10 @@ namespace EncryptedSandbox
             string plaintext = "Anyone can read this!";
             //We want to verify this assignment.  The return type of Encrypt is annotated, and
             //will match the annotation of Ciphertext, so this should be accepted
-            Ciphertext = Encrypt(plaintext);
+            //Ciphertext = Encrypt(plaintext);
             //This should cause the diagnostic to fire because the return type of the method
             //doesn't have the appropriate attribute
-            Ciphertext = RemoveSpecialChars(plaintext);
+            //Ciphertext = RemoveSpecialChars(plaintext, 3);
 
             //This should be an allowed usage because Ciphertext has the [Encrypted] attribute
             //At this call site we need to determine that the method expects an value with an attribute, then determine if the value
@@ -62,12 +67,23 @@ namespace EncryptedSandbox
             //These are also unnacceptable
             SendOverInternet("");
             //SendOverInternet(String.Empty); TODO
+            //SendOverInternet(Encrypt(plaintext));
+            //SendOverInternet(RemoveSpecialChars(Encrypt(plaintext), 1));
+            //SendOverInternet(this.RemoveSpecialChars(Encrypt(plaintext), 0));
+            //SendOverInternet(RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)));
+            //bool yep = true;
+            //SendOverInternet(yep ? RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)) : Encrypt(plaintext));
+            //if(yep)
+            //{
+            //    Console.WriteLine("yep");
+            //}
+            //this.ProgramFactory().RemoveSpecialChars(plaintext, 5);
 
             //Introduce a static method call
-            Result = Utilities.ExecuteQuery("Update user.workstatus set status='Hired'");
+            //Result = Utilities.ExecuteQuery("Update user.workstatus set status='Hired'");
 
             //We permit Encrypted values being assigned to unencrypted
-            RawText = Encrypt(plaintext);
+            //RawText = Encrypt(plaintext);
         }
     }
 }
