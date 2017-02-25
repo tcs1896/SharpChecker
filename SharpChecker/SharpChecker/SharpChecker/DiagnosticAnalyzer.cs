@@ -34,6 +34,8 @@ namespace SharpChecker
         private void AnalyzeNode(SyntaxNodeAnalysisContext context)
         {
             //TODO: Reevaluate branching at this level because we are also doing the same in GetAttributes
+            //Perhaps we can take advantage of dynamic dispatch keeping the structure of the method below,
+            //but passing an instance of a particular "SharpCheckerAnalyzer" which will know how to analyze itself
             //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
             var invocationExpr = context.Node as InvocationExpressionSyntax;
             if (invocationExpr != null)

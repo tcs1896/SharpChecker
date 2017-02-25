@@ -72,6 +72,7 @@ namespace SharpChecker
         private void VerifyInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr, List<List<string>> expectedAttribute, DiagnosticDescriptor rule, string description)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
+            //We may need to recursively dig into the expression if the top level doesn't hand over a identifier
             //TODO: Present a diagnostic instead of failing silently
             if (identifierNameExpr == null) return;
 
@@ -99,6 +100,7 @@ namespace SharpChecker
                 {
                     //Here we are handling the case where the argument is an identifier
                     var argI = argumentList.Arguments[i].Expression as IdentifierNameSyntax;
+                    //TODO: We should be calling the same method which was used to determine the attributes previously "GetAttributes"
                     //var argSymbol = context.SemanticModel.GetDeclaredSymbol(argumentList.Arguments[0]); //GetSymbolInfo(argumentList.Arguments[0]).Symbol as IPropertySymbol;
 
                     if (argI != null)
@@ -183,6 +185,8 @@ namespace SharpChecker
 
                 //Get the formal parameter
                 var param = paramSymbols[i];
+                //TODO: Allow arbitrary expressions as parameters...call a method to handle a single expression of
+                //arbitrary complexity for each argument
                 var attributes = param.GetAttributes();
 
                 foreach (var attr in attributes)
