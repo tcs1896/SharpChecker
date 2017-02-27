@@ -11,7 +11,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 namespace SharpChecker
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SharpCheckerAnalyzer : DiagnosticAnalyzer
+    public class SharpCheckerBaseAnalyzer : DiagnosticAnalyzer
     {
         public const string DiagnosticId = "SharpCheckerMethodParams";
         internal const string Title = "Error in attribute applications";

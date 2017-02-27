@@ -37,12 +37,15 @@ namespace EncryptedSandbox
 
         public Program ProgramFactory()
         {
-            //return new EncryptedSandbox.Program();
+            return new EncryptedSandbox.Program();
         }
 
         [Encrypted]
         public string Ciphertext { get; set; }
 
+        //TODO: How do we determine the class hierarchy associated with these attributes?
+        //This may be a good way to specify type annotation hierarchy.
+        [NotEncrypted]
         public string RawText { get; set; }
 
         [Encrypted]
@@ -84,6 +87,11 @@ namespace EncryptedSandbox
 
             //We permit Encrypted values being assigned to unencrypted
             //RawText = Encrypt(plaintext);
+
+            int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
+            var quarterback = teamNumbers.Select(num => num < 20).FirstOrDefault();
+            int myInt = 2 + 2;
+            new Object();
         }
     }
 }

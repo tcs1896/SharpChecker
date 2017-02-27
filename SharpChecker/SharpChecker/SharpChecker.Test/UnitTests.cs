@@ -76,7 +76,7 @@ namespace SharpChecker.Test
 
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new SharpCheckerAnalyzer();
+            return new SharpCheckerBaseAnalyzer();
         }
     }
 }

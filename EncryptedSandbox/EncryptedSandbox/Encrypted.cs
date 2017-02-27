@@ -15,4 +15,9 @@ namespace EncryptedSandbox
         //    this.isEncrypted = myvalue;
         //}
     }
+
+    [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
+    class NotEncryptedAttribute : EncryptedAttribute
+    {
+    }
 }

@@ -8,6 +8,13 @@ namespace EncryptedSandbox
 {
     public class Utilities
     {
+        private Object myProperty;
+
+        public Object GetMyProperty()
+        {
+            return myProperty;
+        }
+
         public static int ExecuteQuery(string sql)
         {
             //Execute the query against the database

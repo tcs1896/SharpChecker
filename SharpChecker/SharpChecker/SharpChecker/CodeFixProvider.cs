@@ -23,7 +23,7 @@ namespace SharpChecker
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(SharpCheckerAnalyzer.DiagnosticId); }
+            get { return ImmutableArray.Create(SharpCheckerBaseAnalyzer.DiagnosticId); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()
