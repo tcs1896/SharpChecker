@@ -69,6 +69,10 @@ namespace EncryptedSandbox
             Result = Utilities.ExecuteQuery("Update user.workstatus set status='Hired'");
             //We permit Encrypted values being assigned to unencrypted
             RawText = Encrypt(plaintext);
+            //This is an example of assigning to a property - at the moment this should present an error
+            //because a attribute has been added to the property.  I don't think I have appropriately
+            //handled the right hand side.
+            new Utilities().MyProperty = new Object();
 
             ////////////////////////////////////////////////////
             //Expression Statement - Invocation Expressions
@@ -101,7 +105,7 @@ namespace EncryptedSandbox
             var quarterback = teamNumbers.Select(num => num < 20).FirstOrDefault();
             int myInt = 2 + 2;
             new Object();
-            //new Utilities().MyProperty = new Object();
+            
         }
     }
 }

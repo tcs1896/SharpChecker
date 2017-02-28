@@ -8,6 +8,7 @@ namespace EncryptedSandbox
 {
     public class Utilities
     {
+        [Encrypted]
         public Object MyProperty { get; set; }
 
         //public Object GetMyProperty()

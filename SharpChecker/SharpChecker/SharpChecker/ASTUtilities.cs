@@ -158,7 +158,35 @@ namespace SharpChecker
 
             if (identifierName != null)
             {
-                return GetAttributes(context, identifierName);
+                List<string> attrs = GetAttributes(context, identifierName);
+
+                //If we didn't find any annotations then we return the appropriate enum value indicating as much
+                if (attrs.Count() > 0)
+                {
+                    return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, attrs);
+                }
+                else
+                {
+                    return new Tuple<AttributeType, List<string>>(AttributeType.NoAnnotation, null);
+                }
+            }
+            else
+            {
+                var memAccess = assignmentExpression.Left as MemberAccessExpressionSyntax;
+                if(memAccess != null)
+                {
+                    List<string> memAttrs = GetAttributes(context, memAccess);
+
+                    //If we didn't find any annotations then we return the appropriate enum value indicating as much
+                    if (memAttrs.Count() > 0)
+                    {
+                        return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, memAttrs);
+                    }
+                    else
+                    {
+                        return new Tuple<AttributeType, List<string>>(AttributeType.NoAnnotation, null);
+                    }
+                }
             }
 
             return new Tuple<AttributeType, List<string>>(AttributeType.NotImplemented, null);
@@ -170,7 +198,7 @@ namespace SharpChecker
         /// <param name="context"></param>
         /// <param name="identifierName"></param>
         /// <returns></returns>
-        public Tuple<AttributeType, List<string>> GetAttributes(SyntaxNodeAnalysisContext context, IdentifierNameSyntax identifierName)
+        public List<string> GetAttributes(SyntaxNodeAnalysisContext context, IdentifierNameSyntax identifierName)
         {
             List<string> attrs = new List<string>();
 
@@ -186,21 +214,35 @@ namespace SharpChecker
                     attrs.Add(argAttr.AttributeClass.ToString());
                 }
             }
-            else
+
+            return attrs;
+        }
+
+        /// <summary>
+        /// Get a list of attributes associated with a identifier
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="memAccess"></param>
+        /// <returns></returns>
+        public List<string> GetAttributes(SyntaxNodeAnalysisContext context, MemberAccessExpressionSyntax memAccess)
+        {
+            List<string> attrs = new List<string>();
+            //May need to differentiate between a property access expression and a method invocation
+
+            // Get the symbol associated with the property
+            SymbolInfo info = context.SemanticModel.GetSymbolInfo(memAccess);
+            ISymbol symbol = info.Symbol;
+            if (symbol != null)
             {
-                return new Tuple<AttributeType, List<string>>(AttributeType.NotImplemented, null);
+                // Check if there are attributes associated with this symbol
+                var argAttrs = symbol.GetAttributes();
+                foreach (var argAttr in argAttrs)
+                {
+                    attrs.Add(argAttr.AttributeClass.ToString());
+                }
             }
 
-
-            //If we didn't find any annotations then we return the appropriate enum value indicating as much
-            if (attrs.Count() > 0)
-            {
-                return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, attrs);
-            }
-            else
-            {
-                return new Tuple<AttributeType, List<string>>(AttributeType.NoAnnotation, null);
-            }
+            return attrs;
         }
 
 
