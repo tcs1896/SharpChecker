@@ -8,12 +8,12 @@ namespace EncryptedSandbox
 {
     public class Utilities
     {
-        private Object myProperty;
+        public Object MyProperty { get; set; }
 
-        public Object GetMyProperty()
-        {
-            return myProperty;
-        }
+        //public Object GetMyProperty()
+        //{
+        //    return myProperty;
+        //}
 
         public static int ExecuteQuery(string sql)
         {

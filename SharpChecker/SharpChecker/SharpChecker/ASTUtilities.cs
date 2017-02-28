@@ -35,16 +35,27 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Descend into the syntax node as far as necessary to determine the associated attribute which is expected
+        /// Descend into the syntax node as far as necessary to determine the associated attributes which are expected
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
         public Tuple<AttributeType, List<List<string>>> GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
+            //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
             var invocationExpr = node as InvocationExpressionSyntax;
             if (invocationExpr != null)
             {
                 return AnalyzeInvocationExpr(context, invocationExpr);
+            }
+            else {
+                var assignmentExpression = context.Node as AssignmentExpressionSyntax;
+                if (assignmentExpression != null)
+                {
+                    var assnExprAttrs = AnalyzeAssignmentExpression(context, assignmentExpression);
+                    List<List<String>> asmtAttrs = new List<List<string>>();
+                    asmtAttrs.Add(assnExprAttrs.Item2);
+                    return new Tuple<AttributeType, List<List<string>>>(assnExprAttrs.Item1, asmtAttrs);
+                }
             }
 
             return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
@@ -65,10 +76,138 @@ namespace SharpChecker
             }
             else
             {
-                //present a diagnostic
+                var assignmentExpression = context.Node as AssignmentExpressionSyntax;
+                if (assignmentExpression != null)
+                {
+                    VerifyAssignmentExpression(context, assignmentExpression, expectedAttributes, rule, description);
+                }
             }
         }
 
+        /// <summary>
+        /// Get the annotated types of the formal parameters of a method
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="invocationExpr"></param>
+        /// <returns></returns>
+        private Tuple<AttributeType, List<List<string>>> AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
+        {
+            var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
+            if (identifierNameExpr == null)
+            {
+                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+            }
+
+            //This will lookup the method associated with the invocation expression
+            var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+            //If we failed to lookup the symbol then bail
+            if (memberSymbol == null)
+            {
+                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+            }
+
+            //Check to see if any of the formal parameters of the method being invoked have associated attributes
+            //In order to do this, we need to lookup the appropriate method signature.  
+            ImmutableArray<IParameterSymbol> paramSymbols = memberSymbol.Parameters;
+            //Create the lists of lists which will hold the attributes associated with each of the attributes in the attribute list
+            List<List<string>> attrListParams = new List<List<string>>();
+            bool hasAttrs = false;
+
+            //Iterate over the parameters with an explicit index so we can compare the appropriate argument below
+            for (int i = 0; i < paramSymbols.Count(); i++)
+            {
+                //Create a new list to hold the attributes
+                List<string> paramAttrs = new List<string>();
+
+                //Get the formal parameter
+                var param = paramSymbols[i];
+                //TODO: Allow arbitrary expressions as parameters...call a method to handle a single expression of
+                //arbitrary complexity for each argument
+                var attributes = param.GetAttributes();
+
+                foreach (var attr in attributes)
+                {
+                    paramAttrs.Add(attr.AttributeClass.ToString());
+                    hasAttrs = true;
+                }
+
+                attrListParams.Add(paramAttrs);
+            }
+
+            //If we didn't find any annotations then we return the appropriate enum value indicating as much
+            if (hasAttrs)
+            {
+                return new Tuple<AttributeType, List<List<string>>>(AttributeType.HasAnnotation, attrListParams);
+            }
+            else
+            {
+                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NoAnnotation, null);
+            }
+        }
+
+        /// <summary>
+        /// Get the annotated type associated with the LHS of an assignment (maybe called the receiver)
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="assignmentExpression"></param>
+        /// <returns></returns>
+        private Tuple<AttributeType, List<string>> AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
+        {
+            // First check the variable to which we are assigning
+            var identifierName = assignmentExpression.Left as IdentifierNameSyntax;
+
+            if (identifierName != null)
+            {
+                return GetAttributes(context, identifierName);
+            }
+
+            return new Tuple<AttributeType, List<string>>(AttributeType.NotImplemented, null);
+        }
+
+        /// <summary>
+        /// Get a list of attributes associated with a identifier
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="identifierName"></param>
+        /// <returns></returns>
+        public Tuple<AttributeType, List<string>> GetAttributes(SyntaxNodeAnalysisContext context, IdentifierNameSyntax identifierName)
+        {
+            List<string> attrs = new List<string>();
+
+            // Get the associated symbol
+            SymbolInfo info = context.SemanticModel.GetSymbolInfo(identifierName);
+            ISymbol symbol = info.Symbol;
+            if (symbol != null)
+            {
+                // Check if there are attributes associated with this symbol
+                var argAttrs = symbol.GetAttributes();
+                foreach (var argAttr in argAttrs)
+                {
+                    attrs.Add(argAttr.AttributeClass.ToString());
+                }
+            }
+            else
+            {
+                return new Tuple<AttributeType, List<string>>(AttributeType.NotImplemented, null);
+            }
+
+
+            //If we didn't find any annotations then we return the appropriate enum value indicating as much
+            if (attrs.Count() > 0)
+            {
+                return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, attrs);
+            }
+            else
+            {
+                return new Tuple<AttributeType, List<string>>(AttributeType.NoAnnotation, null);
+            }
+        }
+
+
+        /// <summary>
+        /// If we are invoking a method which has attributes on its formal parameters, then we need to verify that
+        /// the arguments passed abide by these annotations
+        /// </summary>
         private void VerifyInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr, List<List<string>> expectedAttribute, DiagnosticDescriptor rule, string description)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
@@ -80,7 +219,6 @@ namespace SharpChecker
             var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             //If we failed to lookup the symbol then bail
             if (memberSymbol == null) return;
-
 
             //Locate the argument which corresponds to the one with the attribute and 
             //ensure that it also has the attribute
@@ -154,58 +292,59 @@ namespace SharpChecker
             }
         }
 
-        private Tuple<AttributeType, List<List<string>>> AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
+        /// <summary>
+        /// If the variable to which we are assigning a value has an annotation, then we need to verify that the
+        /// expression to which it is assigned with yeild a value with the appropriate annoation
+        /// </summary>
+        private void VerifyAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression, List<List<string>> expectedAttribute, DiagnosticDescriptor rule, string description)
         {
-            var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-            if (identifierNameExpr == null)
+            var argAttrs = expectedAttribute.First();
+
+            // We have found an attribute, so now we verify the RHS
+            var invocationExpr = assignmentExpression.Right as InvocationExpressionSyntax;
+            if (invocationExpr != null)
             {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
-            }
+                // Used to store the method symbol associated with the invocation expression
+                IMethodSymbol memberSymbol = null;
 
-            //This will lookup the method associated with the invocation expression
-            var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
-            //If we failed to lookup the symbol then bail
-            if (memberSymbol == null)
-            {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
-            }
-
-            //Check to see if any of the formal parameters of the method being invoked have associated attributes
-            //In order to do this, we need to lookup the appropriate method signature.  
-            ImmutableArray<IParameterSymbol> paramSymbols = memberSymbol.Parameters;
-            //Create the lists of lists which will hold the attributes associated with each of the attributes in the attribute list
-            List<List<string>> attrListParams = new List<List<string>>();
-            bool hasAttrs = false;
-
-            //Iterate over the parameters with an explicit index so we can compare the appropriate argument below
-            for (int i = 0; i < paramSymbols.Count(); i++)
-            {
-                //Create a new list to hold the attributes
-                List<string> paramAttrs = new List<string>();
-
-                //Get the formal parameter
-                var param = paramSymbols[i];
-                //TODO: Allow arbitrary expressions as parameters...call a method to handle a single expression of
-                //arbitrary complexity for each argument
-                var attributes = param.GetAttributes();
-
-                foreach (var attr in attributes)
+                var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
+                if (identifierNameExpr != null)
                 {
-                    paramAttrs.Add(attr.AttributeClass.ToString());
-                    hasAttrs = true;
+                    memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+                }
+                else
+                {
+                    //If we don't have a local method invocation, we may have a static or instance method invocation
+                    var memberAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
+                    if (memberAccessExpr != null)
+                    {
+                        memberSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IMethodSymbol;
+                    }
                 }
 
-                attrListParams.Add(paramAttrs);
-            }
+                if (memberSymbol != null)
+                {
+                    // Now we check the return type to see if there is an attribute assigned
+                    bool foundMatch = false;
+                    var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
+                    foreach (var retAttr in returnTypeAttrs)
+                    {
+                        //TODO: Need to verify that all expected attributes are accounted for,
+                        //not just that one of the attributes matches
+                        if (argAttrs.Contains(retAttr.AttributeClass.ToString()))
+                        {
+                            foundMatch = true;
+                        }
+                    }
 
-            //If we didn't find any annotations then we return the appropriate enum value indicating as much
-            if (hasAttrs)
-            {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.HasAnnotation, attrListParams);
-            }
-            else
-            {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NoAnnotation, null);
+                    //If we haven't found a match then present a diagnotic error
+                    if (!foundMatch)
+                    {
+                        var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), description);
+                        //Now we register this diagnostic with visual studio
+                        context.ReportDiagnostic(diagnostic);
+                    }
+                }
             }
         }
     }
