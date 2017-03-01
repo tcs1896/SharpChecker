@@ -11,10 +11,10 @@ namespace EncryptedSandbox
         [Encrypted]
         public Object MyProperty { get; set; }
 
-        //public Object GetMyProperty()
-        //{
-        //    return myProperty;
-        //}
+        public Object GetMyProperty()
+        {
+            return myProperty;
+        }
 
         public static int ExecuteQuery(string sql)
         {

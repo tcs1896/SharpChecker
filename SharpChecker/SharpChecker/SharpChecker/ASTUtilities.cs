@@ -219,7 +219,7 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Get a list of attributes associated with a identifier
+        /// Get a list of attributes associated with a member access expression
         /// </summary>
         /// <param name="context"></param>
         /// <param name="memAccess"></param>
@@ -295,13 +295,15 @@ namespace SharpChecker
                             {
                                 if (expectedAttribute[i].Contains(argAttr.AttributeClass.ToString()))
                                 {
-                                    //TODO: Need mechanism for verifying all attributes were found
-                                    foundMatch = true;
+                                    //TODO: Need mechanism to determine which attributes we care about so
+                                    //that additional ones which are present do not throw off our analysis
+                                    //and present warnings when they should not
+                                    expectedAttribute[i].Remove(argAttr.AttributeClass.ToString());
                                 }
                             }
 
                             //If we haven't found a match then present a diagnotic error
-                            if (!foundMatch)
+                            if (expectedAttribute[i].Count() > 0)
                             {
                                 var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), description);
                                 //Now we register this diagnostic with visual studio
@@ -321,13 +323,105 @@ namespace SharpChecker
                         }
                         else
                         {
-                            //TODO: Need to be able to lookup properties
-                            //var argMemAccess = argumentList.Arguments[i].Expression as MemberAccessExpressionSyntax;
-                            //if(argMemAccess != null)
-                            //{
-                            //    memberSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IPropertySymbol;
+                            // Used to store the method symbol associated with the invocation expression
+                            IMethodSymbol argSymbol = null;
+                            var argInvExpr = argumentList.Arguments[i].Expression as InvocationExpressionSyntax;
+                            if (argInvExpr != null)
+                            {
+                                //If we have a local method invocation
+                                var methodIdNameExpr = argInvExpr.Expression as IdentifierNameSyntax;
+                                if (methodIdNameExpr != null)
+                                {
+                                    argSymbol = context.SemanticModel.GetSymbolInfo(methodIdNameExpr).Symbol as IMethodSymbol;
+                                }
+                                else
+                                {
+                                    //If we don't have a local method invocation, we may have a static or instance method invocation
+                                    var memberAccessExpr = argInvExpr.Expression as MemberAccessExpressionSyntax;
+                                    if (memberAccessExpr != null)
+                                    {
+                                        argSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IMethodSymbol;
+                                    }
+                                }
+                            }
 
-                            //}
+                            if (argSymbol != null)
+                            {
+                                // Now we check the return type to see if there is an attribute assigned
+                                var returnTypeAttrs = argSymbol.GetReturnTypeAttributes();
+                                foreach (var retAttr in returnTypeAttrs)
+                                {
+                                    if (expectedAttribute[i].Contains(retAttr.AttributeClass.ToString()))
+                                    {
+                                        //TODO: Need mechanism to determine which attributes we care about so
+                                        //that additional ones which are present do not throw off our analysis
+                                        //and present warnings when they should not
+                                        expectedAttribute[i].Remove(retAttr.AttributeClass.ToString());
+                                    }
+                                }
+
+                                //If we haven't found a match then present a diagnotic error
+                                if (expectedAttribute[i].Count() > 0)
+                                {
+                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                                    context.ReportDiagnostic(diagnostic);
+                                }
+                            }
+                            else //We may be dealing with a field like String.Empty
+                            {
+                                var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
+                                if (fieldSymbol != null)
+                                {
+                                    var fieldAttrs = fieldSymbol.GetAttributes();
+                                    foreach (var fieldAttr in fieldAttrs)
+                                    {
+                                        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
+                                        {
+                                            //TODO: Need mechanism to determine which attributes we care about so
+                                            //that additional ones which are present do not throw off our analysis
+                                            //and present warnings when they should not
+                                            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
+                                        }
+                                    }
+
+                                    //If we haven't found a match then present a diagnotic error
+                                    if (expectedAttribute[i].Count() > 0)
+                                    {
+                                        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                                        context.ReportDiagnostic(diagnostic);
+                                    }
+                                }
+                                else
+                                {
+                                    var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
+                                    if (propertySymbol != null)
+                                    {
+                                        var propAttrs = fieldSymbol.GetAttributes();
+                                        foreach (var propAttr in propAttrs)
+                                        {
+                                            if (expectedAttribute[i].Contains(propAttr.AttributeClass.ToString()))
+                                            {
+                                                //TODO: Need mechanism to determine which attributes we care about so
+                                                //that additional ones which are present do not throw off our analysis
+                                                //and present warnings when they should not
+                                                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
+                                            }
+                                        }
+
+                                        //If we haven't found a match then present a diagnotic error
+                                        if (expectedAttribute[i].Count() > 0)
+                                        {
+                                            var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                                            context.ReportDiagnostic(diagnostic);
+                                        }
+                                    }
+                                    else
+                                    {
+                                        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), nameof(AttributeType.NotImplemented));
+                                        context.ReportDiagnostic(diagnostic);
+                                    }
+                                }
+                            }
                         }
                     }
                 }
