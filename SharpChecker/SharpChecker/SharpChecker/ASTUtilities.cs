@@ -121,8 +121,7 @@ namespace SharpChecker
 
                 //Get the formal parameter
                 var param = paramSymbols[i];
-                //TODO: Allow arbitrary expressions as parameters...call a method to handle a single expression of
-                //arbitrary complexity for each argument
+                //Get the attributes associated with this parameter
                 var attributes = param.GetAttributes();
 
                 foreach (var attr in attributes)
@@ -261,10 +260,6 @@ namespace SharpChecker
             var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             //If we failed to lookup the symbol then bail
             if (memberSymbol == null) return;
-
-            //Locate the argument which corresponds to the one with the attribute and 
-            //ensure that it also has the attribute
-            bool foundMatch = false;
 
             //Grab the argument list so we can interrogate it
             var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
@@ -428,6 +423,29 @@ namespace SharpChecker
             }
         }
 
+        private void VerifyAttribute(SyntaxNodeAnalysisContext context, ExpressionSyntax exp, IFieldSymbol fieldSymbol, List<string> expectedAttributes, DiagnosticDescriptor rule, string description)
+        {
+            var fieldAttrs = fieldSymbol.GetAttributes();
+            foreach (var fieldAttr in fieldAttrs)
+            {
+                if (expectedAttributes.Contains(fieldAttr.AttributeClass.ToString()))
+                {
+                    //TODO: Need mechanism to determine which attributes we care about so
+                    //that additional ones which are present do not throw off our analysis
+                    //and present warnings when they should not
+                    expectedAttributes.Remove(fieldAttr.AttributeClass.ToString());
+                }
+            }
+
+            //If we haven't found a match then present a diagnotic error
+            if (expectedAttributes.Count() > 0)
+            {
+                var diagnostic = Diagnostic.Create(rule, exp.GetLocation(), description);
+                context.ReportDiagnostic(diagnostic);
+            }
+        }
+
+
         /// <summary>
         /// If the variable to which we are assigning a value has an annotation, then we need to verify that the
         /// expression to which it is assigned with yeild a value with the appropriate annoation
@@ -461,25 +479,47 @@ namespace SharpChecker
                 if (memberSymbol != null)
                 {
                     // Now we check the return type to see if there is an attribute assigned
-                    bool foundMatch = false;
                     var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
                     foreach (var retAttr in returnTypeAttrs)
                     {
-                        //TODO: Need to verify that all expected attributes are accounted for,
-                        //not just that one of the attributes matches
                         if (argAttrs.Contains(retAttr.AttributeClass.ToString()))
                         {
-                            foundMatch = true;
+                            //TODO: Need mechanism to determine which attributes we care about so
+                            //that additional ones which are present do not throw off our analysis
+                            //and present warnings when they should not
+                            argAttrs.Remove(retAttr.AttributeClass.ToString());
                         }
+
+
                     }
 
                     //If we haven't found a match then present a diagnotic error
-                    if (!foundMatch)
+                    if (argAttrs.Count() > 0)
                     {
                         var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), description);
                         //Now we register this diagnostic with visual studio
                         context.ReportDiagnostic(diagnostic);
                     }
+                }
+            }
+            else
+            {
+                var rhsLit = assignmentExpression.Right as LiteralExpressionSyntax;
+                if (rhsLit != null)
+                {
+                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), description);
+                    //Now we register this diagnostic with visual studio
+                    context.ReportDiagnostic(diagnostic);
+                }
+                else
+                {
+                    //TODO: We should pull out methods such as this so that they can be used in several areas of the code
+                    var fieldSymbol = context.SemanticModel.GetSymbolInfo(assignmentExpression.Right).Symbol as IFieldSymbol;
+                    if (fieldSymbol != null)
+                    {
+                        VerifyAttribute(context, assignmentExpression.Right, fieldSymbol, argAttrs, rule, description);
+                    }
+                    //TODO: Add property symbols here
                 }
             }
         }
