@@ -196,6 +196,21 @@ namespace SharpChecker.Test
             VerifyDiag(test, diagLoc);
         }
 
+        [TestMethod]
+        public void InvocationArgumentDoesntRespectParamAttribute_SubExpressionArg()
+        {
+            //This apparently hasn't been implemented yet
+            var body = @"                
+                //--Error Cases--//
+                //This should generate an error because RemoveSpecialChars does not return the [Encrypted] attribute
+                SendOverInternet(plaintext + "" ending"");";
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] {
+                new DiagnosticResultLocation("Test0.cs", 47, 17)
+            };
+            VerifyDiag(test, diagLoc);
+        }
+
         /// <summary>
         /// This is a helper method to push the verification through the machinery provided by DiagnosticVerifier
         /// </summary>

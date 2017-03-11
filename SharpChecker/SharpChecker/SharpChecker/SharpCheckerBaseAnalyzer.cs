@@ -25,41 +25,22 @@ namespace SharpChecker
 
         public override void Initialize(AnalysisContext context)
         {
-            //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
-            //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
-            //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
-            context.RegisterSyntaxNodeAction<SyntaxKind>(AnalyzeNode, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
-        }
-
-        private void AnalyzeNode(SyntaxNodeAnalysisContext context)
-        {
-            //Perhaps we can take advantage of dynamic dispatch keeping the structure of the method below,
-            //but passing an instance of a particular "SharpCheckerAnalyzer" which will know how to analyze itself
-
-            var myASTUtilities = new ASTUtilities();
-            var attrs = myASTUtilities.GetAttributes(context, context.Node);
-
-            switch(attrs.Item1)
+            context.RegisterCompilationStartAction(compilationContext =>
             {
-                case ASTUtilities.AttributeType.HasAnnotation:
-                    myASTUtilities.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
-                    break;
-                case ASTUtilities.AttributeType.NotImplemented:
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
-                    break;
-                case ASTUtilities.AttributeType.Invalid:
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
-                    break;
-                case ASTUtilities.AttributeType.IsDefaultable:
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.IsDefaultable)));
-                    break;
-                case ASTUtilities.AttributeType.NoAnnotation:
-                    //There is no annotation to verify, so do nothing
-                    break;
-            }
+                // Perform any setup necessary for our analysis in the constructor
+                var analyzer = new ASTUtilities(Rule, attributeName);
+
+                // Register an intermediate non-end action that accesses and modifies the state.
+                //compilationContext.RegisterSymbolAction(analyzer.AnalyzeNode, SymbolKind.NamedType, SymbolKind.Method);
+
+                //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
+                //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
+                //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
+                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.AnalyzeNode, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
+
+                // Register an end action to report diagnostics based on the final state.
+                compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
+            });
         }
     }
 }

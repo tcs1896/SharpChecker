@@ -34,6 +34,52 @@ namespace SharpChecker
             Invalid = 4
         }
 
+        //We may want to put these somewhere else in the future
+        private DiagnosticDescriptor Rule;
+        private string attributeName;
+
+        public ASTUtilities(DiagnosticDescriptor Rule, string attributeName)
+        {
+            this.Rule = Rule;
+            this.attributeName = attributeName;
+            //We may want to search for attribute definitions which are decorated with something like 
+            //[SharpChecker] then include these attributes in our analysis...
+            //
+            //[SharpChecker]
+            //[AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
+            //class EncryptedAttribute : Attribute
+            //{}
+        }
+
+        public void AnalyzeNode(SyntaxNodeAnalysisContext context)
+        {
+            //Perhaps we can take advantage of dynamic dispatch keeping the structure of the method below,
+            //but passing an instance of a particular "SharpCheckerAnalyzer" which will know how to analyze itself
+            var attrs = this.GetAttributes(context, context.Node);
+
+            switch (attrs.Item1)
+            {
+                case ASTUtilities.AttributeType.HasAnnotation:
+                    this.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
+                    break;
+                case ASTUtilities.AttributeType.NotImplemented:
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
+                    break;
+                case ASTUtilities.AttributeType.Invalid:
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
+                    break;
+                case ASTUtilities.AttributeType.IsDefaultable:
+                    context.ReportDiagnostic(
+                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.IsDefaultable)));
+                    break;
+                case ASTUtilities.AttributeType.NoAnnotation:
+                    //There is no annotation to verify, so do nothing
+                    break;
+            }
+        }
+
         /// <summary>
         /// Descend into the syntax node as far as necessary to determine the associated attributes which are expected
         /// </summary>
@@ -522,6 +568,33 @@ namespace SharpChecker
                     //TODO: Add property symbols here
                 }
             }
+        }
+
+        public void CompilationEndAction(CompilationAnalysisContext context)
+        {
+            //Lines below copied from the sample in D:\GitHub\roslyn\src\Samples\Samples.sln
+            //Specificially - CompilationStartedAnalyzerWithCompilationWideAnalysis
+
+            //if (_interfacesWithUnsecureMethods == null || _secureTypes == null)
+            //{
+            //    // No violating types.
+            //    return;
+            //}
+
+            //// Report diagnostic for violating named types.
+            //foreach (var secureType in _secureTypes)
+            //{
+            //    foreach (var unsecureInterface in _interfacesWithUnsecureMethods)
+            //    {
+            //        if (secureType.AllInterfaces.Contains(unsecureInterface))
+            //        {
+            //            var diagnostic = Diagnostic.Create(Rule, secureType.Locations[0], secureType.Name, SecureTypeInterfaceName, unsecureInterface.Name);
+            //            context.ReportDiagnostic(diagnostic);
+
+            //            break;
+            //        }
+            //    }
+            //}
         }
     }
 }
