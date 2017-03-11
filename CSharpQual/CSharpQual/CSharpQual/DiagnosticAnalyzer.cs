@@ -16,7 +16,7 @@ namespace CSharpQual
     {
         public const string DiagnosticId = "CSQ_StringFormat";
         internal const string Title = "Error in string format";
-        internal const string MessageFormat = "String format error {0}";
+        internal const string MessageFormat = "String format error.";
         internal const string Description = "The number of arguments should match those referenced in the string.";
         internal const string Category = "Syntax";
 
