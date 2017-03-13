@@ -34,9 +34,12 @@ namespace SharpChecker
             Invalid = 4
         }
 
+        SyntaxAnnotation syntaxAnnotation = new SyntaxAnnotation("Parameter");
+
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor Rule;
         private string attributeName;
+        private SyntaxNode docRoot;
 
         public ASTUtilities(DiagnosticDescriptor Rule, string attributeName)
         {
@@ -143,7 +146,7 @@ namespace SharpChecker
             {
                 return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
             }
-
+            
             //This will lookup the method associated with the invocation expression
             var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             //If we failed to lookup the symbol then bail
@@ -151,6 +154,9 @@ namespace SharpChecker
             {
                 return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
             }
+
+            //In addition to the symbols we need the argument syntax so that we may hang annotations on our AST
+            var argList = invocationExpr.ArgumentList.Arguments;
 
             //Check to see if any of the formal parameters of the method being invoked have associated attributes
             //In order to do this, we need to lookup the appropriate method signature.  
@@ -170,8 +176,34 @@ namespace SharpChecker
                 //Get the attributes associated with this parameter
                 var attributes = param.GetAttributes();
 
-                foreach (var attr in attributes)
+                for(int j = 0; j < attributes.Count(); j++)
                 {
+                    var attr = attributes[j];
+
+                    var oldArg = argList[i];
+                    
+                    var newArg = oldArg.WithAdditionalAnnotations(syntaxAnnotation);
+                    var analysisRoot = context.SemanticModel.Compilation.SyntaxTrees.First().GetRoot();
+                    docRoot = docRoot?.ReplaceNode(oldArg, newArg) ?? analysisRoot.ReplaceNode(oldArg, newArg);
+
+                    //invocationExpr = invocationExpr.ReplaceNode(oldArg, newArg);
+                    
+                    //var paramSyntax = param.DeclaringSyntaxReferences;
+                    //if(paramSyntax.Count() != 1)
+                    //{
+                    //    //There are either 0 or multiple declaring symbols.  If we hit this
+                    //    //we may need to get a little more granular.
+
+                    //}
+                    //else
+                    //{
+                    //    var oldParam = paramSyntax.First();
+                    //    var newParam = oldParam
+
+                    //    root = root.ReplaceNode(oldUsing, newUsing);
+
+                    //}
+
                     paramAttrs.Add(attr.AttributeClass.ToString());
                     hasAttrs = true;
                 }
@@ -575,6 +607,23 @@ namespace SharpChecker
             //Lines below copied from the sample in D:\GitHub\roslyn\src\Samples\Samples.sln
             //Specificially - CompilationStartedAnalyzerWithCompilationWideAnalysis
 
+            //Here we should lookup any nodes which have attributes, and check to make sure
+            //they are abided by.  If not then we present a diagnostic.
+            //It may be most effecient to leverage a walker which visits all the nodes of the tree,
+            //so that we can implement different methods to analyze different constructs, and 
+            //only traverse the tree once while performing our validation
+            var changedArgument = docRoot.GetAnnotatedNodesAndTokens("Parameter");
+
+            //var changedArgument = context.Compilation.SyntaxTrees.First().GetRoot().GetAnnotatedNodes("Parameter");
+            if(changedArgument.Count() > 0)
+            {
+                var changed = changedArgument.Count();
+            }
+
+            //var changedClass = context.Compilation.SyntaxTrees.First().GetRoot().DescendantNodes()
+            //    .Where(n => n.HasAnnotation(syntaxAnnotation)).Single();
+
+            var stophere = true;
             //if (_interfacesWithUnsecureMethods == null || _secureTypes == null)
             //{
             //    // No violating types.

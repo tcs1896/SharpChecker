@@ -42,5 +42,8 @@ namespace SharpChecker
                 compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
             });
         }
+
+        //We may want to define methods here which are invoked above.  That way if someone would like
+        //to override the default behavior, they may do so.
     }
 }
