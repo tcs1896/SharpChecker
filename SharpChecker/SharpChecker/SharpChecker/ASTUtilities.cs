@@ -91,23 +91,20 @@ namespace SharpChecker
         public Tuple<AttributeType, List<List<string>>> GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
             //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
-            var invocationExpr = node as InvocationExpressionSyntax;
-            if (invocationExpr != null)
+            switch (node.Kind())
             {
-                return AnalyzeInvocationExpr(context, invocationExpr);
-            }
-            else {
-                var assignmentExpression = context.Node as AssignmentExpressionSyntax;
-                if (assignmentExpression != null)
-                {
+                case SyntaxKind.InvocationExpression:
+                    var invocationExpr = node as InvocationExpressionSyntax;
+                    return AnalyzeInvocationExpr(context, invocationExpr);
+                case SyntaxKind.SimpleAssignmentExpression:
+                    var assignmentExpression = context.Node as AssignmentExpressionSyntax;
                     var assnExprAttrs = AnalyzeAssignmentExpression(context, assignmentExpression);
                     List<List<String>> asmtAttrs = new List<List<string>>();
                     asmtAttrs.Add(assnExprAttrs.Item2);
                     return new Tuple<AttributeType, List<List<string>>>(assnExprAttrs.Item1, asmtAttrs);
-                }
+                default:
+                    return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
             }
-
-            return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
         }
 
         /// <summary>
@@ -604,21 +601,69 @@ namespace SharpChecker
 
         public void CompilationEndAction(CompilationAnalysisContext context)
         {
+
+
+            foreach (var tree in context.Compilation.SyntaxTrees)
+            {
+                //Visit all of the relevant nodes of the tree adding annotations
+                //SyntaxWalker
+                //VisitInvocationExpression{
+                //if(Kind = something)
+                //      invocationSimple()
+                //else(Kind = somethingelse)
+                //      invocationSomethingElse()
+                //}
+                //
+                //Method to be overridden if default behavior is not desired
+                //protected virtual invocationSimple()
+                //{
+                //      enforce subtyping
+                //}
+
+                //tree.
+                var semanticModel = context.Compilation.GetSemanticModel(tree);
+                var walker = new SCBaseSyntaxWalker(tree, semanticModel, syntaxAnnotation);
+                walker.Visit(tree.GetRoot());
+                //var newCompilation = context.Compilation.ReplaceSyntaxTree(tree, walker.GetTree());
+                //context.Compilation.
+
+                var changedArgument = walker.GetTree().GetRoot().GetAnnotatedNodesAndTokens("Parameter");
+                //The immediate parent is the argumentlistsyntax, the parent of that is the method being invoked
+                //Getting an error here because the syntax node is not in the tree
+                var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo(changedArgument.First().Parent.Parent).Symbol as IMethodSymbol;
+
+            }
+            ////docRoot.
+            //foreach (var tree in context.Compilation.SyntaxTrees)
+            //{
+            //    //Visit all of the relevant nodes of the tree verifying the annotations
+
+            //    //Need to be able to lookup symbols in the context - is this available?
+            //    //Original example:
+            //    //var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+            //    //It appears we can do this:
+            //    //var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo("SendOverInternet").Symbol as IMethodSymbol;
+
+            //    //var changedArgument = tree.GetRoot().GetAnnotatedNodesAndTokens("Parameter");
+            //    //The immediate parent is the argumentlistsyntax, the parent of that is the method being invoked
+            //    //var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo(changedArgument.First().Parent.Parent).Symbol as IMethodSymbol;
+            //}
+
             //Lines below copied from the sample in D:\GitHub\roslyn\src\Samples\Samples.sln
             //Specificially - CompilationStartedAnalyzerWithCompilationWideAnalysis
 
-            //Here we should lookup any nodes which have attributes, and check to make sure
-            //they are abided by.  If not then we present a diagnostic.
-            //It may be most effecient to leverage a walker which visits all the nodes of the tree,
-            //so that we can implement different methods to analyze different constructs, and 
-            //only traverse the tree once while performing our validation
-            var changedArgument = docRoot.GetAnnotatedNodesAndTokens("Parameter");
+            ////Here we should lookup any nodes which have attributes, and check to make sure
+            ////they are abided by.  If not then we present a diagnostic.
+            ////It may be most effecient to leverage a walker which visits all the nodes of the tree,
+            ////so that we can implement different methods to analyze different constructs, and 
+            ////only traverse the tree once while performing our validation
+            //var changedArgument = docRoot.GetAnnotatedNodesAndTokens("Parameter");
 
-            //var changedArgument = context.Compilation.SyntaxTrees.First().GetRoot().GetAnnotatedNodes("Parameter");
-            if(changedArgument.Count() > 0)
-            {
-                var changed = changedArgument.Count();
-            }
+            ////var changedArgument = context.Compilation.SyntaxTrees.First().GetRoot().GetAnnotatedNodes("Parameter");
+            //if(changedArgument.Count() > 0)
+            //{
+            //    var changed = changedArgument.Count();
+            //}
 
             //var changedClass = context.Compilation.SyntaxTrees.First().GetRoot().DescendantNodes()
             //    .Where(n => n.HasAnnotation(syntaxAnnotation)).Single();

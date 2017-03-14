@@ -36,6 +36,7 @@
   <ItemGroup>
     <Compile Include="ASTUtilities.cs" />
     <Compile Include="CodeFixProvider.cs" />
+    <Compile Include="SCBaseSyntaxWalker.cs" />
     <Compile Include="SharpCheckerBaseAnalyzer.cs" />
     <Compile Include="EncryptedAttribute.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
