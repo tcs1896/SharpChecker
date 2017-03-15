@@ -69,7 +69,28 @@ namespace SharpChecker.Test
         /// present no diagnostics
         /// </summary>
         [TestMethod]
-        public void NoDiagnosticsResult()
+        public void NoDiagnosticsResult_Invocation()
+        {
+            var body = @"                
+                ////////////////////////////////////////////////////
+                //Expression Statement - Invocation Expressions
+                ///////////////////////////////////////////////////
+
+                //--Acceptable Cases--//
+                //This should be an allowed usage because Ciphertext has the [Encrypted] attribute
+                //At this call site we need to determine that the method expects an value with an attribute, then determine if the value
+                //being passed has this attribute (or eventually a subtype attribute).
+                //SendOverInternet(Ciphertext);
+                //This is ok because the return type of the 'Encrypt' method has the [Encrypted] attribute
+                SendOverInternet(Encrypt(plaintext));";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+
+            VerifyCSharpDiagnostic(test);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_Assignment()
         {
             var body = @"                
                 ////////////////////////////////////////////////////
@@ -81,19 +102,7 @@ namespace SharpChecker.Test
                 //of Ciphertext, so this should be accepted
                 Ciphertext = Encrypt(plaintext);
                 //We permit Encrypted values being assigned to unencrypted
-                RawText = Encrypt(plaintext);
-
-                ////////////////////////////////////////////////////
-                //Expression Statement - Invocation Expressions
-                ///////////////////////////////////////////////////
-
-                //--Acceptable Cases--//
-                //This should be an allowed usage because Ciphertext has the [Encrypted] attribute
-                //At this call site we need to determine that the method expects an value with an attribute, then determine if the value
-                //being passed has this attribute (or eventually a subtype attribute).
-                SendOverInternet(Ciphertext);
-                //This is ok because the return type of the 'Encrypt' method has the [Encrypted] attribute
-                SendOverInternet(Encrypt(plaintext));";
+                RawText = Encrypt(plaintext);";
 
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
 

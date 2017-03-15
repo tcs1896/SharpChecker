@@ -25,30 +25,32 @@ namespace SharpChecker
 
         public override void Initialize(AnalysisContext context)
         {
-            context.RegisterCompilationAction(compilationContext =>
-            {
-                var analyzer = new ASTUtilities(Rule, attributeName);
-                analyzer.CompilationEndAction(compilationContext);
-            });
-
-            //context.RegisterCompilationStartAction(compilationContext =>
+            //At one point I was thinking that we needed assurances about the execution of certain actions which couldn't 
+            //be counted upon unless we did all of our analysis in one place (the endcompilation action).  However, given
+            //the new design of accumulating all the type annoations in a collection we can leverage the different types of
+            //actions which Roslyn exposes.
+            //context.RegisterCompilationAction(compilationContext =>
             //{
-            //    // Perform any setup necessary for our analysis in the constructor
             //    var analyzer = new ASTUtilities(Rule, attributeName);
-
-            //    // Register an intermediate non-end action that accesses and modifies the state.
-            //    //compilationContext.RegisterSymbolAction(analyzer.AnalyzeNode, SymbolKind.NamedType, SymbolKind.Method);
-
-            //    //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
-            //    //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
-            //    //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
-            //    compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.AnalyzeNode, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
-
-
-
-            //    // Register an end action to report diagnostics based on the final state.
-            //    compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
+            //    analyzer.CompilationEndAction(compilationContext);
             //});
+
+            context.RegisterCompilationStartAction(compilationContext =>
+            {
+                // Perform any setup necessary for our analysis in the constructor
+                var analyzer = new ASTUtilities(Rule, attributeName);
+
+                // Register an intermediate non-end action that accesses and modifies the state.
+                //compilationContext.RegisterSymbolAction(analyzer.AnalyzeNode, SymbolKind.NamedType, SymbolKind.Method);
+
+                //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
+                //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
+                //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
+                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.AnalyzeNode, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
+
+                // Register an end action to report diagnostics based on the final state.
+                compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
+            });
         }
 
         //We may want to define methods here which are invoked above.  That way if someone would like

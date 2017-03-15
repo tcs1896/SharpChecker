@@ -36,6 +36,8 @@ namespace SharpChecker
 
         SyntaxAnnotation syntaxAnnotation = new SyntaxAnnotation("Parameter");
 
+        Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new Dictionary<SyntaxNode, List<List<string>>>();
+
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor Rule;
         private string attributeName;
@@ -63,7 +65,7 @@ namespace SharpChecker
             switch (attrs.Item1)
             {
                 case ASTUtilities.AttributeType.HasAnnotation:
-                    this.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
+                    //this.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
                     break;
                 case ASTUtilities.AttributeType.NotImplemented:
                     context.ReportDiagnostic(
@@ -130,6 +132,29 @@ namespace SharpChecker
             }
         }
 
+        private void AddSymbolAttributes(SyntaxNode sn, ISymbol symbol)
+        {
+            if (symbol != null)
+            {
+                var argAttrs = symbol.GetAttributes();
+                List<String> argAttrStrings = new List<string>();
+                foreach (var argAttr in argAttrs)
+                {
+                    argAttrStrings.Add(argAttr.AttributeClass.ToString());
+                }
+                //Add the list of expected attributes to the dictionary
+                if(AnnotationDictionary.ContainsKey(sn))
+                {
+                    //We should probably check for duplicates here
+                    if (!AnnotationDictionary[sn].Contains(argAttrStrings))
+                    {
+                        AnnotationDictionary[sn].Add(argAttrStrings);
+                    }
+                }
+                AnnotationDictionary.Add(sn, new List<List<string>>() { argAttrStrings });
+            }
+        }
+
         /// <summary>
         /// Get the annotated types of the formal parameters of a method
         /// </summary>
@@ -152,8 +177,59 @@ namespace SharpChecker
                 return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
             }
 
-            //In addition to the symbols we need the argument syntax so that we may hang annotations on our AST
-            var argList = invocationExpr.ArgumentList.Arguments;
+            //Grab the argument list so we can interrogate it
+            var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
+
+            for (int i = 0; i < argumentList.Arguments.Count; i++)
+            {
+                //Here we are handling the case where the argument is an identifier
+                var argI = argumentList.Arguments[i].Expression as IdentifierNameSyntax;
+
+                //TODO: We should be calling the same method which was used to determine the attributes previously "GetAttributes"
+                //var argSymbol = context.SemanticModel.GetDeclaredSymbol(argumentList.Arguments[0]); //GetSymbolInfo(argumentList.Arguments[0]).Symbol as IPropertySymbol;
+
+                if (argI != null)
+                {
+                    SymbolInfo info = context.SemanticModel.GetSymbolInfo(argI);
+                    ISymbol symbol = info.Symbol;
+                    AddSymbolAttributes(argI, symbol);
+                }
+                else
+                {
+                    //We are probably dealing with a literal - which cannot have the associated attribute
+                    var argLit = argumentList.Arguments[i].Expression as LiteralExpressionSyntax;
+                    if (argLit != null)
+                    {
+                        return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+                        //var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), description);
+                        //Now we register this diagnostic with visual studio
+                        //context.ReportDiagnostic(diagnostic);
+                    }
+
+                    // Used to store the method symbol associated with the invocation expression
+                    //IMethodSymbol argSymbol = null;
+                    var argInvExpr = argumentList.Arguments[i].Expression as InvocationExpressionSyntax;
+                    //If this is another invocation expression then we should recurse
+                    if (argInvExpr != null)
+                    {
+                        AnalyzeInvocationExpr(context, argInvExpr);
+                    }
+                    else
+                    {
+                        var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
+                        if (fieldSymbol != null)
+                        {
+                            //var fieldAttrs = fieldSymbol.GetAttributes();
+                            AddSymbolAttributes(argumentList.Arguments[i].Expression, fieldSymbol);
+                        }
+                        else
+                        {
+                            var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
+                            AddSymbolAttributes(argumentList.Arguments[i].Expression, propertySymbol);
+                        }
+                    }
+                }
+            }
 
             //Check to see if any of the formal parameters of the method being invoked have associated attributes
             //In order to do this, we need to lookup the appropriate method signature.  
@@ -176,31 +252,6 @@ namespace SharpChecker
                 for(int j = 0; j < attributes.Count(); j++)
                 {
                     var attr = attributes[j];
-
-                    var oldArg = argList[i];
-                    
-                    var newArg = oldArg.WithAdditionalAnnotations(syntaxAnnotation);
-                    var analysisRoot = context.SemanticModel.Compilation.SyntaxTrees.First().GetRoot();
-                    docRoot = docRoot?.ReplaceNode(oldArg, newArg) ?? analysisRoot.ReplaceNode(oldArg, newArg);
-
-                    //invocationExpr = invocationExpr.ReplaceNode(oldArg, newArg);
-                    
-                    //var paramSyntax = param.DeclaringSyntaxReferences;
-                    //if(paramSyntax.Count() != 1)
-                    //{
-                    //    //There are either 0 or multiple declaring symbols.  If we hit this
-                    //    //we may need to get a little more granular.
-
-                    //}
-                    //else
-                    //{
-                    //    var oldParam = paramSyntax.First();
-                    //    var newParam = oldParam
-
-                    //    root = root.ReplaceNode(oldUsing, newUsing);
-
-                    //}
-
                     paramAttrs.Add(attr.AttributeClass.ToString());
                     hasAttrs = true;
                 }
@@ -211,6 +262,9 @@ namespace SharpChecker
             //If we didn't find any annotations then we return the appropriate enum value indicating as much
             if (hasAttrs)
             {
+                //Add the expected attributes of the arguments to our collection
+                AnnotationDictionary.Add(identifierNameExpr, attrListParams);
+
                 return new Tuple<AttributeType, List<List<string>>>(AttributeType.HasAnnotation, attrListParams);
             }
             else
@@ -237,6 +291,9 @@ namespace SharpChecker
                 //If we didn't find any annotations then we return the appropriate enum value indicating as much
                 if (attrs.Count() > 0)
                 {
+                    //Add the list of expected attributes to the dictionary
+                    AnnotationDictionary.Add(identifierName, new List<List<string>>() { attrs });
+
                     return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, attrs);
                 }
                 else
@@ -254,6 +311,9 @@ namespace SharpChecker
                     //If we didn't find any annotations then we return the appropriate enum value indicating as much
                     if (memAttrs.Count() > 0)
                     {
+                        //Add the list of expected attributes to the dictionary
+                        AnnotationDictionary.Add(memAccess, new List<List<string>>() { memAttrs });
+
                         return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, memAttrs);
                     }
                     else
@@ -620,17 +680,21 @@ namespace SharpChecker
                 //      enforce subtyping
                 //}
 
+                //At this point because we would never need to persist the information which we gain back out to the world
+                //we could add annotations, and do things like upon finding a null check walk over all references to the
+                //variable checked for null which occur in that block an annotate them as nonnull
+
                 //tree.
                 var semanticModel = context.Compilation.GetSemanticModel(tree);
-                var walker = new SCBaseSyntaxWalker(tree, semanticModel, syntaxAnnotation);
+                var walker = new SCBaseSyntaxWalker(tree, semanticModel, syntaxAnnotation, Rule, attributeName, AnnotationDictionary, context);
                 walker.Visit(tree.GetRoot());
                 //var newCompilation = context.Compilation.ReplaceSyntaxTree(tree, walker.GetTree());
                 //context.Compilation.
 
-                var changedArgument = walker.GetTree().GetRoot().GetAnnotatedNodesAndTokens("Parameter");
-                //The immediate parent is the argumentlistsyntax, the parent of that is the method being invoked
-                //Getting an error here because the syntax node is not in the tree
-                var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo(changedArgument.First().Parent.Parent).Symbol as IMethodSymbol;
+                //var changedArgument = walker.GetTree().GetRoot().GetAnnotatedNodesAndTokens("Parameter");
+                ////The immediate parent is the argumentlistsyntax, the parent of that is the method being invoked
+                ////Getting an error here because the syntax node is not in the tree
+                //var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo(changedArgument.First().Parent.Parent).Symbol as IMethodSymbol;
 
             }
             ////docRoot.
@@ -668,7 +732,7 @@ namespace SharpChecker
             //var changedClass = context.Compilation.SyntaxTrees.First().GetRoot().DescendantNodes()
             //    .Where(n => n.HasAnnotation(syntaxAnnotation)).Single();
 
-            var stophere = true;
+            //var stophere = true;
             //if (_interfacesWithUnsecureMethods == null || _secureTypes == null)
             //{
             //    // No violating types.
