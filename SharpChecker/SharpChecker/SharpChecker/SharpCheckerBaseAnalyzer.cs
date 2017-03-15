@@ -55,5 +55,6 @@ namespace SharpChecker
 
         //We may want to define methods here which are invoked above.  That way if someone would like
         //to override the default behavior, they may do so.
+        //Alternatively they could override the methods in ASTUtilities like analyzer.AnalyzeNode
     }
 }

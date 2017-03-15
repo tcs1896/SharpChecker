@@ -62,27 +62,27 @@ namespace SharpChecker
             //but passing an instance of a particular "SharpCheckerAnalyzer" which will know how to analyze itself
             var attrs = this.GetAttributes(context, context.Node);
 
-            switch (attrs.Item1)
-            {
-                case ASTUtilities.AttributeType.HasAnnotation:
-                    //this.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
-                    break;
-                case ASTUtilities.AttributeType.NotImplemented:
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
-                    break;
-                case ASTUtilities.AttributeType.Invalid:
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
-                    break;
-                case ASTUtilities.AttributeType.IsDefaultable:
-                    context.ReportDiagnostic(
-                        Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.IsDefaultable)));
-                    break;
-                case ASTUtilities.AttributeType.NoAnnotation:
-                    //There is no annotation to verify, so do nothing
-                    break;
-            }
+            //switch (attrs.Item1)
+            //{
+            //    case ASTUtilities.AttributeType.HasAnnotation:
+            //        //this.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
+            //        break;
+            //    case ASTUtilities.AttributeType.NotImplemented:
+            //        context.ReportDiagnostic(
+            //            Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
+            //        break;
+            //    case ASTUtilities.AttributeType.Invalid:
+            //        context.ReportDiagnostic(
+            //            Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
+            //        break;
+            //    case ASTUtilities.AttributeType.IsDefaultable:
+            //        context.ReportDiagnostic(
+            //            Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.IsDefaultable)));
+            //        break;
+            //    case ASTUtilities.AttributeType.NoAnnotation:
+            //        //There is no annotation to verify, so do nothing
+            //        break;
+            //}
         }
 
         /// <summary>
@@ -156,7 +156,10 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Get the annotated types of the formal parameters of a method
+        /// Get the annotated types of the formal parameters of a method and the return type.
+        /// If the invocation occurs in the void context then the return type will not be significant,
+        /// but if the invocation occurs within the context of an argument list to another invocation
+        /// then we will need to know the annotated type which is expected to result.
         /// </summary>
         /// <param name="context"></param>
         /// <param name="invocationExpr"></param>
@@ -175,6 +178,21 @@ namespace SharpChecker
             if (memberSymbol == null)
             {
                 return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+            }
+
+            //Grab any attributes associated with the return type of the method
+            //Should we identify the attributes associated with the return type positionally?
+            //These always occur in the first list, then the attributes associated with the 
+            //arguments are tracked in subsequent ones?
+            var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
+            if (returnTypeAttrs.Count() > 0)
+            {
+                var retAttrStrings = new List<String>();
+                foreach (var retAttr in returnTypeAttrs)
+                {
+                    retAttrStrings.Add(retAttr.AttributeClass.ToString());
+                }
+                AnnotationDictionary.Add(identifierNameExpr, new List<List<String>>() { retAttrStrings } );
             }
 
             //Grab the argument list so we can interrogate it
@@ -200,7 +218,7 @@ namespace SharpChecker
                     var argLit = argumentList.Arguments[i].Expression as LiteralExpressionSyntax;
                     if (argLit != null)
                     {
-                        return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+                        //return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
                         //var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), description);
                         //Now we register this diagnostic with visual studio
                         //context.ReportDiagnostic(diagnostic);
@@ -263,7 +281,7 @@ namespace SharpChecker
             if (hasAttrs)
             {
                 //Add the expected attributes of the arguments to our collection
-                AnnotationDictionary.Add(identifierNameExpr, attrListParams);
+                AnnotationDictionary.Add(argumentList, attrListParams);
 
                 return new Tuple<AttributeType, List<List<string>>>(AttributeType.HasAnnotation, attrListParams);
             }

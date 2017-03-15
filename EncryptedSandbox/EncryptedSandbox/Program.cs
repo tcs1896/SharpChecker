@@ -117,6 +117,7 @@ namespace EncryptedSandbox
             SendOverInternet(this.RemoveSpecialChars(Encrypt(plaintext), 0));
             SendOverInternet(RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)));
             SendOverInternet(yep ? RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)) : Encrypt(plaintext));
+            SendOverInternet(plaintext + " ending");
     
         }
     }

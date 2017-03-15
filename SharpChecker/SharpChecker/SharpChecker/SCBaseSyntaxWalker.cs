@@ -215,10 +215,11 @@ namespace SharpChecker
             if (identifierNameExpr == null) return;
 
             //Get the expected attributes for the arguments of this invocation
+            var argList = invocationExpr.ArgumentList;
             List<List<String>> expectedAttribute = null;
-            if (AnnotationDictionary.ContainsKey(identifierNameExpr))
+            if (AnnotationDictionary.ContainsKey(argList))
             {
-                expectedAttribute = AnnotationDictionary[identifierNameExpr];
+                expectedAttribute = AnnotationDictionary[argList];
             }
             else
             {

@@ -80,7 +80,7 @@ namespace SharpChecker.Test
                 //This should be an allowed usage because Ciphertext has the [Encrypted] attribute
                 //At this call site we need to determine that the method expects an value with an attribute, then determine if the value
                 //being passed has this attribute (or eventually a subtype attribute).
-                //SendOverInternet(Ciphertext);
+                SendOverInternet(Ciphertext);
                 //This is ok because the return type of the 'Encrypt' method has the [Encrypted] attribute
                 SendOverInternet(Encrypt(plaintext));";
 
@@ -199,8 +199,7 @@ namespace SharpChecker.Test
                 SendOverInternet(RemoveSpecialChars(Encrypt(plaintext + "" ending""), (3 + 5)));";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] {
-                new DiagnosticResultLocation("Test0.cs", 47, 34),
-                new DiagnosticResultLocation("Test0.cs", 47, 53)
+                new DiagnosticResultLocation("Test0.cs", 47, 34)
             };
             VerifyDiag(test, diagLoc);
         }
@@ -208,14 +207,16 @@ namespace SharpChecker.Test
         [TestMethod]
         public void InvocationArgumentDoesntRespectParamAttribute_SubExpressionArg()
         {
-            //This apparently hasn't been implemented yet
+            //This causes an error when attempting to retreive the symbol associated with the method
+            // ==> CandidateReason: OverloadResolutionFailure
+            //I guess it has difficulting determing that the result of concatenating plaintext and plaintext is a string?
             var body = @"                
                 //--Error Cases--//
-                //This should generate an error because RemoveSpecialChars does not return the [Encrypted] attribute
-                SendOverInternet(plaintext + "" ending"");";
+                //This should generate an error because the concatenated string doesn't have the [Encrypted] attribute
+                SendOverInternet(plaintext + plaintext);";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] {
-                new DiagnosticResultLocation("Test0.cs", 47, 17)
+                new DiagnosticResultLocation("Test0.cs", 47, 34)
             };
             VerifyDiag(test, diagLoc);
         }
