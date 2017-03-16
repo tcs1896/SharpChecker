@@ -15,34 +15,27 @@ namespace SharpChecker
 {
     class SCBaseSyntaxWalker : CSharpSyntaxWalker
     {
-        private SyntaxNode docRoot;
-        //private CompilationAnalysisContext context;
-        private SemanticModel semanticModel;
-        private SyntaxAnnotation synAnn;
         private SyntaxTree tree;
         private DiagnosticDescriptor rule;
-        private string description;
+        private string attributeName;
         private Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         private CompilationAnalysisContext context;
 
         public int MyProperty { get; set; }
 
-        public SCBaseSyntaxWalker(SyntaxTree tree, SemanticModel semanticModel, SyntaxAnnotation synAnn, DiagnosticDescriptor rule, string description, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, CompilationAnalysisContext context)
+        public SCBaseSyntaxWalker(SyntaxTree tree, DiagnosticDescriptor rule, string attributeName, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, CompilationAnalysisContext context)
         {
-            this.docRoot = tree.GetRoot();
             this.tree = tree;
-            this.semanticModel = semanticModel;
-            this.synAnn = synAnn;
             this.rule = rule;
-            this.description = description;
+            this.attributeName = attributeName;
             this.AnnotationDictionary = annotationDictionary;
             this.context = context;
         }
 
-        public SyntaxTree GetTree()
-        {
-            return tree.WithRootAndOptions(docRoot, new CSharpParseOptions());
-        }
+        //public SyntaxTree GetTree()
+        //{
+        //    return tree.WithRootAndOptions(docRoot, new CSharpParseOptions());
+        //}
 
         /// <summary>
         /// This is invoked for nodes of all types followed by the more specific Visit
@@ -137,8 +130,6 @@ namespace SharpChecker
                     {
                         returnTypeAttrs = AnnotationDictionary[identifierNameExpr].FirstOrDefault();
                     }
-
-                    //memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
                 }
                 else
                 {
@@ -150,8 +141,6 @@ namespace SharpChecker
                         {
                             returnTypeAttrs = AnnotationDictionary[identifierNameExpr].FirstOrDefault();
                         }
-
-                        //    memberSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IMethodSymbol;
                     }
                 }
 
@@ -170,8 +159,7 @@ namespace SharpChecker
                 //If we haven't found a match then present a diagnotic error
                 if (expectedAttributes.Count() > 0)
                 {
-                    var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), description);
-                    //Now we register this diagnostic with visual studio
+                    var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), attributeName);
                     context.ReportDiagnostic(diagnostic);
                 }
                 
@@ -181,14 +169,12 @@ namespace SharpChecker
                 var rhsLit = assignmentExpression.Right as LiteralExpressionSyntax;
                 if (rhsLit != null)
                 {
-                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), description);
-                    //Now we register this diagnostic with visual studio
+                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), attributeName);
                     context.ReportDiagnostic(diagnostic);
                 }
                 else
                 {
                     var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), "Not implemented");
-                    //Now we register this diagnostic with visual studio
                     context.ReportDiagnostic(diagnostic);
                     //TODO: We should pull out methods such as this so that they can be used in several areas of the code
                     //var fieldSymbol = context.SemanticModel.GetSymbolInfo(assignmentExpression.Right).Symbol as IFieldSymbol;
@@ -229,11 +215,6 @@ namespace SharpChecker
                 return;
             }
 
-            ////This will lookup the method associated with the invocation expression
-            //var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
-            ////If we failed to lookup the symbol then bail
-            //if (memberSymbol == null) return;
-
             //Grab the argument list so we can interrogate it
             var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
 
@@ -253,11 +234,6 @@ namespace SharpChecker
 
                     if (argI != null)
                     {
-                        //SymbolInfo info = context.SemanticModel.GetSymbolInfo(argI);
-                        //ISymbol symbol = info.Symbol;
-                        //if (symbol != null)
-                        //{
-                        //var argAttrs = symbol.GetAttributes();
                         List<String> argAttrs = new List<string>();
 
                         if (AnnotationDictionary.ContainsKey(argI))
@@ -269,11 +245,7 @@ namespace SharpChecker
                         {
                             if (expectedAttribute[i].Contains(argAttr))
                             {
-                                //TODO: Need mechanism to determine which attributes we care about so
-                                //that additional ones which are present do not throw off our analysis
-                                //and present warnings when they should not
-
-                                //Also, we may want to create a deep copy of this object instead of
+                                //We may want to create a deep copy of this object instead of
                                 //removing them directly from the source collection, as it stands only
                                 //making one verification pass, this should be ok
                                 expectedAttribute[i].Remove(argAttr);
@@ -283,11 +255,9 @@ namespace SharpChecker
                         //If we haven't found a match then present a diagnotic error
                         if (expectedAttribute[i].Count() > 0)
                         {
-                            var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), description);
-                            //Now we register this diagnostic with visual studio
+                            var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), attributeName);
                             context.ReportDiagnostic(diagnostic);
                         }
-                        //}
                     }
                     else
                     {
@@ -295,14 +265,11 @@ namespace SharpChecker
                         var argLit = argumentList.Arguments[i].Expression as LiteralExpressionSyntax;
                         if (argLit != null)
                         {
-                            var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), description);
-                            //Now we register this diagnostic with visual studio
+                            var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), attributeName);
                             context.ReportDiagnostic(diagnostic);
                         }
                         else
                         {
-                            // Used to store the method symbol associated with the invocation expression
-                            //IMethodSymbol argSymbol = null;
                             List<String> returnTypeAttrs = null;
                             var argInvExpr = argumentList.Arguments[i].Expression as InvocationExpressionSyntax;
                             if (argInvExpr != null)
@@ -315,8 +282,6 @@ namespace SharpChecker
                                     {
                                         returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
                                     }
-                                    
-                                    //argSymbol = context.SemanticModel.GetSymbolInfo(methodIdNameExpr).Symbol as IMethodSymbol;
                                 }
                                 else
                                 {
@@ -328,7 +293,6 @@ namespace SharpChecker
                                         {
                                             returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
                                         }
-                                        //argSymbol = context.SemanticModel.GetSymbolInfo(memberAccessExpr).Symbol as IMethodSymbol;
                                     }
                                 }
                             }
@@ -336,7 +300,6 @@ namespace SharpChecker
                             if (returnTypeAttrs != null)
                             {
                                 // Now we check the return type to see if there is an attribute assigned
-                                //var returnTypeAttrs = argSymbol.GetReturnTypeAttributes();
                                 foreach (var retAttr in returnTypeAttrs)
                                 {
                                     if (expectedAttribute[i].Contains(retAttr))
@@ -351,7 +314,7 @@ namespace SharpChecker
                                 //If we haven't found a match then present a diagnotic error
                                 if (expectedAttribute[i].Count() > 0)
                                 {
-                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), attributeName);
                                     context.ReportDiagnostic(diagnostic);
                                 }
                             }
@@ -378,7 +341,7 @@ namespace SharpChecker
                                 //If we haven't found a match then present a diagnotic error
                                 if (expectedAttribute[i].Count() > 0)
                                 {
-                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), attributeName);
                                     context.ReportDiagnostic(diagnostic);
                                 }
 

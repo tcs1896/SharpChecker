@@ -46,7 +46,7 @@ namespace SharpChecker
                 //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
                 //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
                 //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
-                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.AnalyzeNode, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
+                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.FindAllAttributes, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
 
                 // Register an end action to report diagnostics based on the final state.
                 compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);

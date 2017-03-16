@@ -62,6 +62,18 @@ namespace SharpChecker.Test
 
                     }
                 }
+
+                public class Utilities
+                {
+                    [Encrypted]
+                    public Object MyProperty { get; set; }
+
+                    public static int ExecuteQuery(string sql)
+                    {
+                        //Execute the query against the database
+                        return 1;
+                    }
+                }
             }";
 
         /// <summary>
@@ -124,6 +136,31 @@ namespace SharpChecker.Test
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 30) };
             VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void DecoratedPropAssignedToUndecoratedResultFromStaticMethod()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //This should cause the diagnostic to fire because the return type of the method
+                //doesn't have the appropriate attribute
+                //Introduce a static method call
+                //Ciphertext = Utilities.ExecuteQuery(""Update user.workstatus set status = 'Hired'"");";
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 30) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_AssignmentsWithNoAttribues()
+        {
+            var body = @"                
+                //Random samples
+                int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
+                var quarterback = teamNumbers.Select(num => num < 20).FirstOrDefault();";
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            VerifyCSharpDiagnostic(test);
         }
 
         /// <summary>
