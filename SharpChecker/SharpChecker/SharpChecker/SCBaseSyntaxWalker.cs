@@ -102,7 +102,7 @@ namespace SharpChecker
 
             //Get the expected attributes for the arguments of this invocation
             List<String> expectedAttributes = null;
-            if (AnnotationDictionary.ContainsKey(identifierName))
+            if (identifierName != null && AnnotationDictionary.ContainsKey(identifierName))
             {
                 expectedAttributes = AnnotationDictionary[identifierName].FirstOrDefault();
             }
@@ -137,9 +137,9 @@ namespace SharpChecker
                     var memberAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
                     if (memberAccessExpr != null)
                     {
-                        if (AnnotationDictionary.ContainsKey(identifierNameExpr))
+                        if (AnnotationDictionary.ContainsKey(memberAccessExpr))
                         {
-                            returnTypeAttrs = AnnotationDictionary[identifierNameExpr].FirstOrDefault();
+                            returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
                         }
                     }
                 }
@@ -174,7 +174,7 @@ namespace SharpChecker
                 }
                 else
                 {
-                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), "Not implemented");
+                    var diagnostic = Diagnostic.Create(rule, assignmentExpression.GetLocation(), "Not implemented");
                     context.ReportDiagnostic(diagnostic);
                     //TODO: We should pull out methods such as this so that they can be used in several areas of the code
                     //var fieldSymbol = context.SemanticModel.GetSymbolInfo(assignmentExpression.Right).Symbol as IFieldSymbol;
