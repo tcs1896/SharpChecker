@@ -30,7 +30,7 @@ namespace SharpChecker
             //Like NoAnnotation, but we can use context or special knowledge to assign default 
             //(possibly with arbitrary user specified code)
             IsDefaultable = 3,
-            //You shouldn't be asking for a annotation on this type of element
+            //You shouldn't be asking for an annotation on this type of element
             Invalid = 4
         }
 
@@ -59,7 +59,7 @@ namespace SharpChecker
         {
             //Perhaps we can take advantage of dynamic dispatch keeping the structure of the method below,
             //but passing an instance of a particular "SharpCheckerAnalyzer" which will know how to analyze itself
-            var attrs = this.GetAttributes(context, context.Node);
+            this.GetAttributes(context, context.Node);
 
             //switch (attrs.Item1)
             //{
@@ -89,25 +89,28 @@ namespace SharpChecker
         /// </summary>
         /// <param name="node"></param>
         /// <returns></returns>
-        public Tuple<AttributeType, List<List<string>>> GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode node)
+        public void GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
             //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
             switch (node.Kind())
             {
                 case SyntaxKind.InvocationExpression:
                     var invocationExpr = node as InvocationExpressionSyntax;
-                    return AnalyzeInvocationExpr(context, invocationExpr);
+                    AnalyzeInvocationExpr(context, invocationExpr);
+                    break;
                 case SyntaxKind.SimpleAssignmentExpression:
                     var assignmentExpression = context.Node as AssignmentExpressionSyntax;
-                    var assnExprAttrs = AnalyzeAssignmentExpression(context, assignmentExpression);
-                    List<List<String>> asmtAttrs = new List<List<string>>();
-                    asmtAttrs.Add(assnExprAttrs.Item2);
-                    return new Tuple<AttributeType, List<List<string>>>(assnExprAttrs.Item1, asmtAttrs);
-                default:
-                    return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+                    AnalyzeAssignmentExpression(context, assignmentExpression);
+                    break;
             }
         }
 
+        /// <summary>
+        /// Helper method which accepts retreives the attributes associated with a symbol
+        /// and adds them to our global table with a sn as the key
+        /// </summary>
+        /// <param name="sn">The syntax node which we are analyzing</param>
+        /// <param name="symbol">The symbol associated with the syntax node</param>
         private void AddSymbolAttributes(SyntaxNode sn, ISymbol symbol)
         {
             if (symbol != null)
@@ -127,9 +130,8 @@ namespace SharpChecker
                         AnnotationDictionary[sn].Add(argAttrStrings);
                     }
                 }
-
                 //Not sure if this acceptable.  We may need to distinguish between separate instances
-                if (!AnnotationDictionary.ContainsKey(sn))
+                else
                 {
                     AnnotationDictionary.Add(sn, new List<List<string>>() { argAttrStrings });
                 }
@@ -144,13 +146,12 @@ namespace SharpChecker
         /// </summary>
         /// <param name="context"></param>
         /// <param name="invocationExpr"></param>
-        /// <returns></returns>
-        private Tuple<AttributeType, List<List<string>>> AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
+        private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
             if (identifierNameExpr == null)
             {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+                return;
             }
             
             //This will lookup the method associated with the invocation expression
@@ -158,7 +159,7 @@ namespace SharpChecker
             //If we failed to lookup the symbol then bail
             if (memberSymbol == null)
             {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
+                return;
             }
 
             //Grab any attributes associated with the return type of the method
@@ -190,10 +191,6 @@ namespace SharpChecker
             {
                 //Here we are handling the case where the argument is an identifier
                 var argI = argumentList.Arguments[i].Expression as IdentifierNameSyntax;
-
-                //TODO: We should be calling the same method which was used to determine the attributes previously "GetAttributes"
-                //var argSymbol = context.SemanticModel.GetDeclaredSymbol(argumentList.Arguments[0]); //GetSymbolInfo(argumentList.Arguments[0]).Symbol as IPropertySymbol;
-
                 if (argI != null)
                 {
                     SymbolInfo info = context.SemanticModel.GetSymbolInfo(argI);
@@ -202,18 +199,6 @@ namespace SharpChecker
                 }
                 else
                 {
-                    //We are probably dealing with a literal - which cannot have the associated attribute
-                    //var argLit = argumentList.Arguments[i].Expression as LiteralExpressionSyntax;
-                    //if (argLit != null)
-                    //{
-                    //    //return new Tuple<AttributeType, List<List<string>>>(AttributeType.NotImplemented, null);
-                    //    //var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), description);
-                    //    //Now we register this diagnostic with visual studio
-                    //    //context.ReportDiagnostic(diagnostic);
-                    //}
-
-                    // Used to store the method symbol associated with the invocation expression
-                    //IMethodSymbol argSymbol = null;
                     var argInvExpr = argumentList.Arguments[i].Expression as InvocationExpressionSyntax;
                     //If this is another invocation expression then we should recurse
                     //This is an important pattern which should be replicated elsewhere
@@ -273,12 +258,6 @@ namespace SharpChecker
             {
                 //Add the expected attributes of the arguments to our collection
                 AnnotationDictionary.Add(argumentList, attrListParams);
-
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.HasAnnotation, attrListParams);
-            }
-            else
-            {
-                return new Tuple<AttributeType, List<List<string>>>(AttributeType.NoAnnotation, null);
             }
         }
 
@@ -288,7 +267,7 @@ namespace SharpChecker
         /// <param name="context"></param>
         /// <param name="assignmentExpression"></param>
         /// <returns></returns>
-        private Tuple<AttributeType, List<string>> AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
+        private void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
         {
             // First check the variable to which we are assigning
             var identifierName = assignmentExpression.Left as IdentifierNameSyntax;
@@ -302,12 +281,6 @@ namespace SharpChecker
                 {
                     //Add the list of expected attributes to the dictionary
                     AnnotationDictionary.Add(identifierName, new List<List<string>>() { attrs });
-
-                    return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, attrs);
-                }
-                else
-                {
-                    return new Tuple<AttributeType, List<string>>(AttributeType.NoAnnotation, null);
                 }
             }
             else
@@ -322,17 +295,9 @@ namespace SharpChecker
                     {
                         //Add the list of expected attributes to the dictionary
                         AnnotationDictionary.Add(memAccess, new List<List<string>>() { memAttrs });
-
-                        return new Tuple<AttributeType, List<string>>(AttributeType.HasAnnotation, memAttrs);
-                    }
-                    else
-                    {
-                        return new Tuple<AttributeType, List<string>>(AttributeType.NoAnnotation, null);
                     }
                 }
             }
-
-            return new Tuple<AttributeType, List<string>>(AttributeType.NotImplemented, null);
         }
 
         /// <summary>
@@ -388,42 +353,29 @@ namespace SharpChecker
             return attrs;
         }
 
-        public void CompilationEndAction(CompilationAnalysisContext context)
+        /// <summary>
+        /// Now that we have collected all the type annotation information we walk over the
+        /// syntax tree and verify that they respect our subtyping relationships
+        /// </summary>
+        /// <param name="context"></param>
+        public void VerifyTypeAnnotations(SemanticModelAnalysisContext context)
         {
-            foreach (var tree in context.Compilation.SyntaxTrees)
-            {
-                //Visit all of the relevant nodes of the tree adding annotations
-                //SyntaxWalker
-                //VisitInvocationExpression{
-                //if(Kind = something)
-                //      invocationSimple()
-                //else(Kind = somethingelse)
-                //      invocationSomethingElse()
-                //}
-                //
-                //Method to be overridden if default behavior is not desired
-                //protected virtual invocationSimple()
-                //{
-                //      enforce subtyping
-                //}
+            //Here we should lookup any nodes which have attributes, and check to make sure
+            //they are abided by.  If not then we present a diagnostic.
 
-                //Here we should lookup any nodes which have attributes, and check to make sure
-                //they are abided by.  If not then we present a diagnostic.
-                //It may be most effecient to leverage a walker which visits all the nodes of the tree,
-                //so that we can implement different methods to analyze different constructs, and 
-                //only traverse the tree once while performing our validation
+            //It may be most effecient to leverage a walker which visits all the nodes of the tree,
+            //so that we can implement different methods to analyze different constructs, and 
+            //only traverse the tree once while performing our validation
 
-                //At this point because we would never need to persist the information which we gain back out to the world
-                //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
-                //variable checked for null which occur in that block an annotate them as nonnull
+            //At this point because we would never need to persist the information which we gain back out to the world
+            //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
+            //variable checked for null which occur in that block an annotate them as nonnull
 
-                var semanticModel = context.Compilation.GetSemanticModel(tree);
-                var walker = new SCBaseSyntaxWalker(tree, rule, attributeName, AnnotationDictionary, context);
-                walker.Visit(tree.GetRoot());
-            }
+            var walker = new SCBaseSyntaxWalker(rule, attributeName, AnnotationDictionary, context);
+            walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
-            //Leaving this around for now to see some false starts.  This may help later
-            //or with the writeup or presentation
+            //Leaving this around for now as a reminder of some false starts.  Need to include this
+            //in the final writeup along with suggested improvements to Roslyn
 
             //var newCompilation = context.Compilation.ReplaceSyntaxTree(tree, walker.GetTree());
 

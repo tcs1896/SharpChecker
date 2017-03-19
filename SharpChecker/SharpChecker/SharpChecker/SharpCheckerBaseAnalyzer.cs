@@ -49,7 +49,8 @@ namespace SharpChecker
                 compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.FindAllAttributes, SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression);
 
                 // Register an end action to report diagnostics based on the final state.
-                compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
+                //compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
+                compilationContext.RegisterSemanticModelAction(analyzer.VerifyTypeAnnotations);
             });
         }
 
