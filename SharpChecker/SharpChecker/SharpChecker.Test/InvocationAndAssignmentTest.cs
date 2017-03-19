@@ -310,7 +310,7 @@ namespace SharpChecker.Test
             var expected = new DiagnosticResult
             {
                 Id = "SharpCheckerMethodParams",
-                Message = String.Format("Attribute application error {0}", "EncryptedSandbox.EncryptedAttribute"),
+                Message = String.Format("Attribute application error {0}", "Encrypted"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = diagLoc
             };

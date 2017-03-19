@@ -17,6 +17,8 @@ namespace SharpChecker
         //The attributes themselves are decorated with the [SharpChecker] attribute.  Eventually, they may be inferred
         //based on context, data flow, and control flow.
         Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new Dictionary<SyntaxNode, List<List<string>>>();
+        //We cache the list of attributes which we are concerned with, so that we don't have to lookup the definition many times
+        List<string> SharpCheckerAttributes = new List<string>();
 
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor rule;
@@ -31,6 +33,9 @@ namespace SharpChecker
             //[AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
             //class EncryptedAttribute : Attribute
             //{}
+
+            //Start out by hard-coding
+            SharpCheckerAttributes.Add("Encrypted");
         }
 
         /// <summary>
@@ -143,11 +148,12 @@ namespace SharpChecker
                 var param = paramSymbols[i];
                 //Get the attributes associated with this parameter
                 var attributes = param.GetAttributes();
+                var attributeStrings = GetSharpCheckerAttributeStrings(attributes);
 
-                for(int j = 0; j < attributes.Count(); j++)
+                for (int j = 0; j < attributeStrings.Count(); j++)
                 {
-                    var attr = attributes[j];
-                    paramAttrs.Add(attr.AttributeClass.ToString());
+                    var attr = attributeStrings[j];
+                    paramAttrs.Add(attr);
                     hasAttrs = true;
                 }
 
@@ -162,13 +168,35 @@ namespace SharpChecker
             }
         }
 
-        private void AddAttributesToDictionary(IdentifierNameSyntax identifierNameExpr, ImmutableArray<AttributeData> returnTypeAttrs)
+        private List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
         {
             var retAttrStrings = new List<String>();
-            foreach (var retAttr in returnTypeAttrs)
+            foreach(var attData in returnTypeAttrs)
             {
-                retAttrStrings.Add(retAttr.AttributeClass.ToString());
+                //See if we have previosly recorded this as a attribute we are interested in
+                string att = attData.AttributeClass.MetadataName;
+                if (att.EndsWith("Attribute"))
+                {
+                    att = att.Replace("Attribute", "");
+                }
+
+                if (SharpCheckerAttributes.Contains(att))
+                {
+                    retAttrStrings.Add(att);
+                }
+                else
+                {
+                    //If we try to look it up everytime we miss we may incur a lot of overhead.  Perhaps we should
+                    //store an indication that we looked something up in the past and didn't find it.
+                }
             }
+
+            return retAttrStrings;
+        }
+
+        private void AddAttributesToDictionary(IdentifierNameSyntax identifierNameExpr, ImmutableArray<AttributeData> returnTypeAttrs)
+        {
+            var retAttrStrings = GetSharpCheckerAttributeStrings(returnTypeAttrs);
             //An exception was generated here because we were attempting to add the same name twice.
             //This leads me to believe that the same identifier occurring in different locations in
             //the source text may not be distinguished.  We could perhaps introduce a composite key
@@ -190,11 +218,8 @@ namespace SharpChecker
             if (symbol != null)
             {
                 var argAttrs = symbol.GetAttributes();
-                List<String> argAttrStrings = new List<string>();
-                foreach (var argAttr in argAttrs)
-                {
-                    argAttrStrings.Add(argAttr.AttributeClass.ToString());
-                }
+                List<String> argAttrStrings = GetSharpCheckerAttributeStrings(argAttrs);
+
                 //Add the list of expected attributes to the dictionary
                 if (AnnotationDictionary.ContainsKey(sn))
                 {
@@ -249,53 +274,24 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Get a list of attributes associated with a identifier
+        /// Get a list of attributes associated with a syntax node
         /// </summary>
         /// <param name="context"></param>
-        /// <param name="identifierName"></param>
+        /// <param name="synNode"></param>
         /// <returns></returns>
-        public List<string> GetAttributes(SyntaxNodeAnalysisContext context, IdentifierNameSyntax identifierName)
-        {
-            List<string> attrs = new List<string>();
-
-            // Get the associated symbol
-            SymbolInfo info = context.SemanticModel.GetSymbolInfo(identifierName);
-            ISymbol symbol = info.Symbol;
-            if (symbol != null)
-            {
-                // Check if there are attributes associated with this symbol
-                var argAttrs = symbol.GetAttributes();
-                foreach (var argAttr in argAttrs)
-                {
-                    attrs.Add(argAttr.AttributeClass.ToString());
-                }
-            }
-
-            return attrs;
-        }
-
-        /// <summary>
-        /// Get a list of attributes associated with a member access expression
-        /// </summary>
-        /// <param name="context"></param>
-        /// <param name="memAccess"></param>
-        /// <returns></returns>
-        public List<string> GetAttributes(SyntaxNodeAnalysisContext context, MemberAccessExpressionSyntax memAccess)
+        public List<string> GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode synNode)
         {
             List<string> attrs = new List<string>();
             //May need to differentiate between a property access expression and a method invocation
 
             // Get the symbol associated with the property
-            SymbolInfo info = context.SemanticModel.GetSymbolInfo(memAccess);
+            SymbolInfo info = context.SemanticModel.GetSymbolInfo(synNode);
             ISymbol symbol = info.Symbol;
             if (symbol != null)
             {
                 // Check if there are attributes associated with this symbol
                 var argAttrs = symbol.GetAttributes();
-                foreach (var argAttr in argAttrs)
-                {
-                    attrs.Add(argAttr.AttributeClass.ToString());
-                }
+                attrs = GetSharpCheckerAttributeStrings(argAttrs);
             }
 
             return attrs;
