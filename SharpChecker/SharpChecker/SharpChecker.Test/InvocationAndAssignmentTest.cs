@@ -12,6 +12,15 @@ namespace SharpChecker.Test
     [TestClass]
     public class UnitTest : CodeFixVerifier
     {
+        /// <summary>
+        /// Override the appropriate method to pass in our analyzer
+        /// </summary>
+        /// <returns></returns>
+        protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
+        {
+            return new SharpCheckerBaseAnalyzer();
+        }
+
         public const string EncryptionProgStart = @"
             using System;
             using System.Collections.Generic;
@@ -307,15 +316,6 @@ namespace SharpChecker.Test
             };
 
             VerifyCSharpDiagnostic(test, expected);
-        }
-
-        /// <summary>
-        /// Override the appropriate method to pass in our analyzer
-        /// </summary>
-        /// <returns></returns>
-        protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
-        {
-            return new SharpCheckerBaseAnalyzer();
         }
 
         //The below methods were added to help with an issue causing a test to fail

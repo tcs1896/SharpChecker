@@ -67,6 +67,106 @@ namespace SharpChecker
             base.VisitInvocationExpression(node);
         }
 
+        public override void VisitMethodDeclaration(MethodDeclarationSyntax node)
+        {
+            VerifyMethodDecl(node);
+            base.VisitMethodDeclaration(node);
+        }
+
+        /// <summary>
+        /// If a method declaration overrides a declaration in a base class which has attributes
+        /// associated with the parameters or the return type, then we need to make sure that the
+        /// overriding method does not allow circumvention of those attributes
+        /// </summary>
+        /// <param name="methodDecl"></param>
+        private void VerifyMethodDecl(MethodDeclarationSyntax methodDecl)
+        {
+            //This will lookup the method associated with the invocation expression
+            var childMethodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDecl);
+            //If we failed to lookup the symbol then bail
+            if (childMethodSymbol == null)
+            {
+                return;
+            }
+
+            //First check to see if this is a method which overrides a virtual method
+            var overriddenMethod = childMethodSymbol.OverriddenMethod;
+            if (overriddenMethod != null)
+            {
+                // Make sure the return type is subtype of the parent
+                var returnTypeAttrs = overriddenMethod.GetReturnTypeAttributes();
+                List<string> returnTypeAttrStrings = new List<string>();
+                foreach (var item in returnTypeAttrs)
+                {
+                    returnTypeAttrStrings.Add(item.AttributeClass.ToString());
+                }
+
+                var derivedReturnTypeAttrs = childMethodSymbol.GetReturnTypeAttributes();
+
+                foreach (var derTypeAttr in derivedReturnTypeAttrs)
+                {
+                    string derTypeAttrString = derTypeAttr.AttributeClass.ToString();
+                    if (returnTypeAttrStrings.Contains(derTypeAttrString))
+                    {
+                        returnTypeAttrStrings.Remove(derTypeAttrString);
+                    }
+                }
+
+                if (returnTypeAttrStrings.Count() > 0)
+                {
+                    var diagnostic = Diagnostic.Create(rule, methodDecl.GetLocation(), attributeName);
+                    context.ReportDiagnostic(diagnostic);
+                }
+
+                //Now check to see if the attributes of the parameters agree with the overriden method
+                var derivedMethParams = methodDecl.ParameterList.Parameters;
+                if(derivedMethParams.Count() == 0) { return; } //No params to check
+
+                if (overriddenMethod.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is MethodDeclarationSyntax overriddenSyntax)
+                {
+                    var overriddenParams = overriddenSyntax.ParameterList.Parameters;
+
+                    //Check each param in turn
+                    for (int i = 0; i < overriddenParams.Count(); i++)
+                    {
+                        //Get the attributes for this parameter of the overriden method
+                        var param = overriddenParams[i];
+                        var attrs = param.AttributeLists.AsEnumerable();
+                        List<string> stringAttrs = new List<string>();
+                        foreach (var paramAttr in attrs)
+                        {
+                            var finalAttrs = paramAttr.Attributes;
+                            foreach (var fa in finalAttrs)
+                            {
+                                stringAttrs.Add(fa.Name.ToString());
+                            }
+                        }
+
+                        //Get the attributes of the same param for the derived method
+                        var derParam = derivedMethParams[i];
+                        var derAttrs = derParam.AttributeLists.AsEnumerable();
+                        foreach (var derParamAttr in derAttrs)
+                        {
+                            var innerAttr = derParamAttr.Attributes;
+                            foreach(var ia in innerAttr)
+                            {
+                                if(stringAttrs.Contains(ia.Name.ToString()))
+                                {
+                                    stringAttrs.Remove(ia.Name.ToString());
+                                }
+                            }
+                        }
+
+                        if(stringAttrs.Count() > 0)
+                        {
+                            var diagnostic = Diagnostic.Create(rule, derivedMethParams[i].GetLocation(), attributeName);
+                            context.ReportDiagnostic(diagnostic);
+                        }
+                    }
+                }
+            }
+        }
+
         /// <summary>
         /// If the variable to which we are assigning a value has an annotation, then we need to verify that the
         /// expression to which it is assigned with yeild a value with the appropriate annoation

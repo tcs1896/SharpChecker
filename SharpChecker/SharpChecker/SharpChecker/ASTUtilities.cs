@@ -106,39 +106,6 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Helper method which accepts retreives the attributes associated with a symbol
-        /// and adds them to our global table with a sn as the key
-        /// </summary>
-        /// <param name="sn">The syntax node which we are analyzing</param>
-        /// <param name="symbol">The symbol associated with the syntax node</param>
-        private void AddSymbolAttributes(SyntaxNode sn, ISymbol symbol)
-        {
-            if (symbol != null)
-            {
-                var argAttrs = symbol.GetAttributes();
-                List<String> argAttrStrings = new List<string>();
-                foreach (var argAttr in argAttrs)
-                {
-                    argAttrStrings.Add(argAttr.AttributeClass.ToString());
-                }
-                //Add the list of expected attributes to the dictionary
-                if(AnnotationDictionary.ContainsKey(sn))
-                {
-                    //We should probably check for duplicates here
-                    if (!AnnotationDictionary[sn].Contains(argAttrStrings))
-                    {
-                        AnnotationDictionary[sn].Add(argAttrStrings);
-                    }
-                }
-                //Not sure if this acceptable.  We may need to distinguish between separate instances
-                else
-                {
-                    AnnotationDictionary.Add(sn, new List<List<string>>() { argAttrStrings });
-                }
-            }
-        }
-
-        /// <summary>
         /// Get the annotated types of the formal parameters of a method and the return type.
         /// If the invocation occurs in the void context then the return type will not be significant,
         /// but if the invocation occurs within the context of an argument list to another invocation
@@ -258,6 +225,39 @@ namespace SharpChecker
             {
                 //Add the expected attributes of the arguments to our collection
                 AnnotationDictionary.Add(argumentList, attrListParams);
+            }
+        }
+
+        /// <summary>
+        /// Helper method which accepts retreives the attributes associated with a symbol
+        /// and adds them to our global table with a sn as the key
+        /// </summary>
+        /// <param name="sn">The syntax node which we are analyzing</param>
+        /// <param name="symbol">The symbol associated with the syntax node</param>
+        private void AddSymbolAttributes(SyntaxNode sn, ISymbol symbol)
+        {
+            if (symbol != null)
+            {
+                var argAttrs = symbol.GetAttributes();
+                List<String> argAttrStrings = new List<string>();
+                foreach (var argAttr in argAttrs)
+                {
+                    argAttrStrings.Add(argAttr.AttributeClass.ToString());
+                }
+                //Add the list of expected attributes to the dictionary
+                if (AnnotationDictionary.ContainsKey(sn))
+                {
+                    //We should probably check for duplicates here
+                    if (!AnnotationDictionary[sn].Contains(argAttrStrings))
+                    {
+                        AnnotationDictionary[sn].Add(argAttrStrings);
+                    }
+                }
+                //Not sure if this acceptable.  We may need to distinguish between separate instances
+                else
+                {
+                    AnnotationDictionary.Add(sn, new List<List<string>>() { argAttrStrings });
+                }
             }
         }
 
