@@ -16,14 +16,14 @@ using static Microsoft.CodeAnalysis.CSharp.SyntaxFactory;
 
 namespace SharpChecker
 {
-    [ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SharpCheckerCodeFixProvider)), Shared]
+    //[ExportCodeFixProvider(LanguageNames.CSharp, Name = nameof(SharpCheckerCodeFixProvider)), Shared]
     public class SharpCheckerCodeFixProvider : CodeFixProvider
     {
         private const string title = "Fix String Format";
 
         public sealed override ImmutableArray<string> FixableDiagnosticIds
         {
-            get { return ImmutableArray.Create(SharpCheckerBaseAnalyzer.DiagnosticId); }
+            get { return ImmutableArray.Create("NotUsed"); }
         }
 
         public sealed override FixAllProvider GetFixAllProvider()

@@ -35,11 +35,6 @@ namespace SharpChecker.Test
                     }
                 }
 
-                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-                class EncryptedAttribute : Attribute
-                {
-                }
-
                 interface IStudent
                 {
                     [return:Encrypted]
@@ -58,6 +53,22 @@ namespace SharpChecker.Test
 
                     [return:Encrypted]
                     public abstract double GetGPA();
+                }
+
+                [SharpChecker]
+                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)] 
+                class EncryptedAttribute : Attribute
+                {
+                }
+
+                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
+                class SharpCheckerAttribute : Attribute
+                {
+                    //Attribute SubtypeOf;
+                    //public SharpCheckerAttribute(Attribute myvalue)
+                    //{
+                    //    this.SubtypeOf = myvalue;
+                    //}
                 }";
 
         /// <summary>
@@ -107,8 +118,8 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 51) };
-            VerifyDiag(test, diagLoc, "Encrypted");
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 59, 51) };
+            VerifyDiag(test, diagLoc);
         }
 
         [TestMethod]
@@ -130,7 +141,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 41, 21) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 52, 21) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -139,12 +150,12 @@ namespace SharpChecker.Test
         /// </summary>
         /// <param name="test"></param>
         /// <param name="diagLoc"></param>
-        private void VerifyDiag(string test, DiagnosticResultLocation[] diagLoc, string attribute = "EncryptedAttribute")
+        private void VerifyDiag(string test, DiagnosticResultLocation[] diagLoc)
         {
             var expected = new DiagnosticResult
             {
                 Id = "SharpCheckerMethodParams",
-                Message = String.Format("Attribute application error {0}", attribute),
+                Message = String.Format("Attribute application error {0}", "Encrypted"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = diagLoc
             };

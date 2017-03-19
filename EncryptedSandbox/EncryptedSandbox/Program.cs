@@ -45,13 +45,13 @@ namespace EncryptedSandbox
 
         //TODO: How do we determine the class hierarchy associated with these attributes?
         //This may be a good way to specify type annotation hierarchy.
-        //[NotEncrypted]
+        [NotEncrypted]
         public string RawText { get; set; }
 
         [Encrypted]
         public int Result { get; set; }
 
-        void sendText()
+        void SendText()
         {
             string plaintext = "Anyone can read this!";
 

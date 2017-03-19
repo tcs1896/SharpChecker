@@ -7,12 +7,13 @@ using System.Threading.Tasks;
 namespace SharpChecker
 {
     [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-    class SharpCheckerAttribute : Attribute
+    public class SharpCheckerAttribute : Attribute
     {
-        Attribute SubtypeOf;
-        public SharpCheckerAttribute(Attribute myvalue)
-        {
-            this.SubtypeOf = myvalue;
-        }
+        //Instead of an attribute we really want an attribute type
+        //Attribute SubtypeOf;
+        //public SharpCheckerAttribute(Attribute myvalue)
+        //{
+        //    this.SubtypeOf = myvalue;
+        //}
     }
 }

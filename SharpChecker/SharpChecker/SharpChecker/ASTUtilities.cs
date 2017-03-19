@@ -23,7 +23,7 @@ namespace SharpChecker
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor rule;
 
-        public ASTUtilities(DiagnosticDescriptor rule)
+        public ASTUtilities(DiagnosticDescriptor rule, CompilationStartAnalysisContext compilationContext)
         {
             this.rule = rule;
             //We may want to search for attribute definitions which are decorated with something like 
@@ -33,9 +33,50 @@ namespace SharpChecker
             //[AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
             //class EncryptedAttribute : Attribute
             //{}
+            foreach(var tree in compilationContext.Compilation.SyntaxTrees)
+            {
+                var classes = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
+                foreach (var clazz in classes)
+                {
+                    //If there are no attributes decorating this class then move on
+                    if(clazz.AttributeLists.Count() == 0) { continue; }
 
-            //Start out by hard-coding
-            SharpCheckerAttributes.Add("Encrypted");
+                    bool hasAttributeUsage = false;
+                    bool hasSharpChecker = false;
+                    foreach (var attrList in clazz.AttributeLists)
+                    {
+                        foreach (var attr in attrList.Attributes)
+                        {
+                            var attrClass = attr.Name.ToString();
+                            if (attrClass.EndsWith("Attribute"))
+                            {
+                                attrClass = attrClass.Replace("Attribute", "");
+                            }
+
+                            if (attrClass == "AttributeUsage")
+                            {
+                                hasAttributeUsage = true;
+                            }
+
+                            if (attrClass == "SharpChecker")
+                            {
+                                hasSharpChecker = true;
+                            }
+                        }
+                    }
+
+                    //If this was defined as an attribute, and has the [SharpChecker] attribute
+                    if (hasAttributeUsage && hasSharpChecker)
+                    {
+                        var className = clazz.Identifier.Text;
+                        if (className.EndsWith("Attribute"))
+                        {
+                            className = className.Replace("Attribute", "");
+                        }
+                        SharpCheckerAttributes.Add(className);
+                    }
+                }
+            }
         }
 
         /// <summary>
@@ -101,8 +142,7 @@ namespace SharpChecker
                 //Here we are handling the case where the argument is an identifier
                 if (argumentList.Arguments[i].Expression is IdentifierNameSyntax argI)
                 {
-                    SymbolInfo info = context.SemanticModel.GetSymbolInfo(argI);
-                    ISymbol symbol = info.Symbol;
+                    var symbol = context.SemanticModel.GetSymbolInfo(argI).Symbol;
                     AddSymbolAttributes(argI, symbol);
                 }
                 else
@@ -183,11 +223,6 @@ namespace SharpChecker
                 if (SharpCheckerAttributes.Contains(att))
                 {
                     retAttrStrings.Add(att);
-                }
-                else
-                {
-                    //If we try to look it up everytime we miss we may incur a lot of overhead.  Perhaps we should
-                    //store an indication that we looked something up in the past and didn't find it.
                 }
             }
 
@@ -282,11 +317,9 @@ namespace SharpChecker
         public List<string> GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode synNode)
         {
             List<string> attrs = new List<string>();
-            //May need to differentiate between a property access expression and a method invocation
 
             // Get the symbol associated with the property
-            SymbolInfo info = context.SemanticModel.GetSymbolInfo(synNode);
-            ISymbol symbol = info.Symbol;
+            var symbol = context.SemanticModel.GetSymbolInfo(synNode).Symbol;
             if (symbol != null)
             {
                 // Check if there are attributes associated with this symbol
@@ -315,7 +348,7 @@ namespace SharpChecker
             //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
             //variable checked for null which occur in that block an annotate them as nonnull
 
-            var walker = new SCBaseSyntaxWalker(rule, AnnotationDictionary, context);
+            var walker = new SCBaseSyntaxWalker(rule, AnnotationDictionary, context, SharpCheckerAttributes);
             walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
             //Leaving this around for now as a reminder of some false starts.  Need to include this

@@ -3,9 +3,11 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using SharpChecker;
 
 namespace EncryptedSandbox
 {
+    [SharpChecker]
     [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
     class EncryptedAttribute : Attribute
     {

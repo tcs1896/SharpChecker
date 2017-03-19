@@ -31,10 +31,10 @@ namespace SharpChecker.Test
 
             namespace EncryptedSandbox
             {
-                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-                class EncryptedAttribute : Attribute
-                {
-                }
+                
+                
+                
+                
 
                 class TypeName
                 {   
@@ -83,6 +83,22 @@ namespace SharpChecker.Test
                         //Execute the query against the database
                         return 1;
                     }
+                }
+
+                [SharpChecker]
+                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)] 
+                class EncryptedAttribute : Attribute
+                {
+                }
+
+                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
+                class SharpCheckerAttribute : Attribute
+                {
+                    //Attribute SubtypeOf;
+                    //public SharpCheckerAttribute(Attribute myvalue)
+                    //{
+                    //    this.SubtypeOf = myvalue;
+                    //}
                 }
             }";
 

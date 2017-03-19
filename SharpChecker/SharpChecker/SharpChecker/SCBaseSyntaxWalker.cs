@@ -18,14 +18,16 @@ namespace SharpChecker
         private DiagnosticDescriptor rule;
         private Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         private SemanticModelAnalysisContext context;
+        private List<string> sharpCheckerAttributes;
 
         public int MyProperty { get; set; }
 
-        public SCBaseSyntaxWalker(DiagnosticDescriptor rule, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context)
+        public SCBaseSyntaxWalker(DiagnosticDescriptor rule, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
         {
             this.rule = rule;
             this.AnnotationDictionary = annotationDictionary;
             this.context = context;
+            this.sharpCheckerAttributes = SharpCheckerAttributes;
         }
 
         /// <summary>
@@ -93,17 +95,18 @@ namespace SharpChecker
             {
                 // Make sure the return type is subtype of the parent
                 var returnTypeAttrs = overriddenMethod.GetReturnTypeAttributes();
-                List<string> returnTypeAttrStrings = new List<string>();
-                foreach (var item in returnTypeAttrs)
-                {
-                    returnTypeAttrStrings.Add(item.AttributeClass.ToString());
-                }
+                List<string> returnTypeAttrStrings = GetSharpCheckerAttributeStrings(returnTypeAttrs);
 
                 var derivedReturnTypeAttrs = childMethodSymbol.GetReturnTypeAttributes();
 
                 foreach (var derTypeAttr in derivedReturnTypeAttrs)
                 {
                     string derTypeAttrString = derTypeAttr.AttributeClass.ToString();
+                    if(derTypeAttrString.EndsWith("Attribute"))
+                    {
+                        derTypeAttrString = derTypeAttrString.Replace("Attribute", "");
+                    }
+
                     if (returnTypeAttrStrings.Contains(derTypeAttrString))
                     {
                         returnTypeAttrStrings.Remove(derTypeAttrString);
@@ -136,7 +139,11 @@ namespace SharpChecker
                             var finalAttrs = paramAttr.Attributes;
                             foreach (var fa in finalAttrs)
                             {
-                                stringAttrs.Add(fa.Name.ToString());
+                                var faName = fa.Name.ToString();
+                                if (sharpCheckerAttributes.Contains(faName))
+                                {
+                                    stringAttrs.Add(faName);
+                                }
                             }
                         }
 
@@ -163,6 +170,27 @@ namespace SharpChecker
                     }
                 }
             }
+        }
+
+        private List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
+        {
+            var retAttrStrings = new List<String>();
+            foreach (var attData in returnTypeAttrs)
+            {
+                //See if we have previosly recorded this as a attribute we are interested in
+                string att = attData.AttributeClass.MetadataName;
+                if (att.EndsWith("Attribute"))
+                {
+                    att = att.Replace("Attribute", "");
+                }
+
+                if (sharpCheckerAttributes.Contains(att))
+                {
+                    retAttrStrings.Add(att);
+                }
+            }
+
+            return retAttrStrings;
         }
 
         /// <summary>
