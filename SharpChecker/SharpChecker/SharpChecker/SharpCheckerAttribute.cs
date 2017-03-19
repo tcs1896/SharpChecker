@@ -7,12 +7,12 @@ using System.Threading.Tasks;
 namespace SharpChecker
 {
     [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-    class EncryptedAttribute : Attribute
+    class SharpCheckerAttribute : Attribute
     {
-        //private bool isEncrypted;
-        //public EncryptedAttribute(bool myvalue)
-        //{
-        //    this.isEncrypted = myvalue;
-        //}
+        Attribute SubtypeOf;
+        public SharpCheckerAttribute(Attribute myvalue)
+        {
+            this.SubtypeOf = myvalue;
+        }
     }
 }

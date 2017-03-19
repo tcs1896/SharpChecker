@@ -16,9 +16,8 @@ namespace SharpChecker
         public const string DiagnosticId = "SharpCheckerMethodParams";
         internal const string Title = "Error in attribute applications";
         internal const string MessageFormat = "Attribute application error {0}";
-        internal const string Description = "There is a mismatch between the attribute of the formal parameter and that of the argument";
+        internal const string Description = "There is a mismatch between the effective attribute and the one expected";
         internal const string Category = "Syntax";
-        private const string attributeName = "EncryptedSandbox.EncryptedAttribute";
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
 
         public override ImmutableArray<DiagnosticDescriptor> SupportedDiagnostics { get { return ImmutableArray.Create(Rule); } }
@@ -38,7 +37,7 @@ namespace SharpChecker
             context.RegisterCompilationStartAction(compilationContext =>
             {
                 // Perform any setup necessary for our analysis in the constructor
-                var analyzer = new ASTUtilities(Rule, attributeName);
+                var analyzer = new ASTUtilities(Rule);
 
                 // Register an intermediate non-end action that accesses and modifies the state.
                 //compilationContext.RegisterSymbolAction(analyzer.AnalyzeNode, SymbolKind.NamedType, SymbolKind.Method);
@@ -46,7 +45,7 @@ namespace SharpChecker
                 //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
                 //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
                 //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
-                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.FindAllAttributes, 
+                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.GetAttributes, 
                     SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression); 
 
                 // Register an end action to report diagnostics based on the final state.

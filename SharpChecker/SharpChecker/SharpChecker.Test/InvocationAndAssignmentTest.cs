@@ -29,7 +29,7 @@ namespace SharpChecker.Test
             using System.Threading.Tasks;
             using System.Diagnostics;
 
-            namespace ConsoleApplication1
+            namespace EncryptedSandbox
             {
                 [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
                 class EncryptedAttribute : Attribute
@@ -126,7 +126,7 @@ namespace SharpChecker.Test
             VerifyCSharpDiagnostic(test);
         }
 
-        //[TestMethod]
+        [TestMethod]
         public void NoDiagnosticsResult_AssignmentWithMatchingAttribute()
         {
             //This unit test is failing when all tests are run, but not when it is executed in isolation

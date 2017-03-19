@@ -13,39 +13,17 @@ namespace SharpChecker
 {
     class ASTUtilities
     {
-        /// <summary>
-        /// During a discussion with Professor Fluet on 2/23/17 he indicated that it would
-        /// be good to have a mechanism for differentiating between responses from a general
-        /// purpose method intended to analyze a syntax node and return the attribute.
-        /// Below I have specified some of the possibilities.
-        /// </summary>
-        public enum AttributeType
-        {
-            //This will be the default for scenarios which haven't been covered
-            NotImplemented = 0,
-            //Indicates that an annotation is present
-            HasAnnotation = 1,
-            //Indidates that we analyzed the node successfully and found no annotation
-            NoAnnotation = 2,
-            //Like NoAnnotation, but we can use context or special knowledge to assign default 
-            //(possibly with arbitrary user specified code)
-            IsDefaultable = 3,
-            //You shouldn't be asking for an annotation on this type of element
-            Invalid = 4
-        }
-
-        SyntaxAnnotation syntaxAnnotation = new SyntaxAnnotation("Parameter");
-
+        //Dictionary where we will store type annotations.  Initially, these are explicity defined with attributes.
+        //The attributes themselves are decorated with the [SharpChecker] attribute.  Eventually, they may be inferred
+        //based on context, data flow, and control flow.
         Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new Dictionary<SyntaxNode, List<List<string>>>();
 
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor rule;
-        private string attributeName;
 
-        public ASTUtilities(DiagnosticDescriptor rule, string attributeName)
+        public ASTUtilities(DiagnosticDescriptor rule)
         {
             this.rule = rule;
-            this.attributeName = attributeName;
             //We may want to search for attribute definitions which are decorated with something like 
             //[SharpChecker] then include these attributes in our analysis...
             //
@@ -55,47 +33,18 @@ namespace SharpChecker
             //{}
         }
 
-        public void FindAllAttributes(SyntaxNodeAnalysisContext context)
-        {
-            //Perhaps we can take advantage of dynamic dispatch keeping the structure of the method below,
-            //but passing an instance of a particular "SharpCheckerAnalyzer" which will know how to analyze itself
-            this.GetAttributes(context, context.Node);
-
-            //switch (attrs.Item1)
-            //{
-            //    case ASTUtilities.AttributeType.HasAnnotation:
-            //        //this.VerifyAttributes(context, context.Node, attrs.Item2, Rule, attributeName);
-            //        break;
-            //    case ASTUtilities.AttributeType.NotImplemented:
-            //        context.ReportDiagnostic(
-            //            Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
-            //        break;
-            //    case ASTUtilities.AttributeType.Invalid:
-            //        context.ReportDiagnostic(
-            //            Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.NotImplemented)));
-            //        break;
-            //    case ASTUtilities.AttributeType.IsDefaultable:
-            //        context.ReportDiagnostic(
-            //            Diagnostic.Create(Rule, context.Node.GetLocation(), nameof(ASTUtilities.AttributeType.IsDefaultable)));
-            //        break;
-            //    case ASTUtilities.AttributeType.NoAnnotation:
-            //        //There is no annotation to verify, so do nothing
-            //        break;
-            //}
-        }
-
         /// <summary>
-        /// Descend into the syntax node as far as necessary to determine the associated attributes which are expected
+        /// Descend into the syntax node as far as necessary to determine the associated attributes which are expected.
+        /// This is the executed by the SyntaxNodeActions fired by Roslyn.
         /// </summary>
-        /// <param name="node"></param>
-        /// <returns></returns>
-        public void GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode node)
+        /// <param name="context"></param>
+        public void GetAttributes(SyntaxNodeAnalysisContext context)
         {
-            //Determine if we are dealing with an InvocationExpression or a SimpleAssignment
-            switch (node.Kind())
+            //Determine what type of sytax node we are dealing with
+            switch (context.Node.Kind())
             {
                 case SyntaxKind.InvocationExpression:
-                    var invocationExpr = node as InvocationExpressionSyntax;
+                    var invocationExpr = context.Node as InvocationExpressionSyntax;
                     AnalyzeInvocationExpr(context, invocationExpr);
                     break;
                 case SyntaxKind.SimpleAssignmentExpression:
@@ -136,19 +85,7 @@ namespace SharpChecker
             var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
             if (returnTypeAttrs.Count() > 0)
             {
-                var retAttrStrings = new List<String>();
-                foreach (var retAttr in returnTypeAttrs)
-                {
-                    retAttrStrings.Add(retAttr.AttributeClass.ToString());
-                }
-                //An exception was generated here because we were attempting to add the same name twice.
-                //This leads me to believe that the same identifier occurring in different locations in
-                //the source text may not be distinguished.  We could perhaps introduce a composite key
-                //involving "span" so that we could distinguish uses at different locations in the source text.
-                if (!AnnotationDictionary.ContainsKey(identifierNameExpr))
-                {
-                    AnnotationDictionary.Add(identifierNameExpr, new List<List<String>>() { retAttrStrings });
-                }
+                AddAttributesToDictionary(identifierNameExpr, returnTypeAttrs);
             }
 
             //Grab the argument list so we can interrogate it
@@ -157,8 +94,7 @@ namespace SharpChecker
             for (int i = 0; i < argumentList.Arguments.Count; i++)
             {
                 //Here we are handling the case where the argument is an identifier
-                var argI = argumentList.Arguments[i].Expression as IdentifierNameSyntax;
-                if (argI != null)
+                if (argumentList.Arguments[i].Expression is IdentifierNameSyntax argI)
                 {
                     SymbolInfo info = context.SemanticModel.GetSymbolInfo(argI);
                     ISymbol symbol = info.Symbol;
@@ -166,19 +102,17 @@ namespace SharpChecker
                 }
                 else
                 {
-                    var argInvExpr = argumentList.Arguments[i].Expression as InvocationExpressionSyntax;
                     //If this is another invocation expression then we should recurse
                     //This is an important pattern which should be replicated elsewhere
                     //As an example: If we have a binary expression we should recursively 
                     //analyze the right and left then combine the result - like type checking
-                    if (argInvExpr != null)
+                    if (argumentList.Arguments[i].Expression is InvocationExpressionSyntax argInvExpr)
                     {
                         AnalyzeInvocationExpr(context, argInvExpr);
                     }
                     else
                     {
-                        var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
-                        if (fieldSymbol != null)
+                        if (context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol is IFieldSymbol fieldSymbol)
                         {
                             //var fieldAttrs = fieldSymbol.GetAttributes();
                             AddSymbolAttributes(argumentList.Arguments[i].Expression, fieldSymbol);
@@ -228,6 +162,23 @@ namespace SharpChecker
             }
         }
 
+        private void AddAttributesToDictionary(IdentifierNameSyntax identifierNameExpr, ImmutableArray<AttributeData> returnTypeAttrs)
+        {
+            var retAttrStrings = new List<String>();
+            foreach (var retAttr in returnTypeAttrs)
+            {
+                retAttrStrings.Add(retAttr.AttributeClass.ToString());
+            }
+            //An exception was generated here because we were attempting to add the same name twice.
+            //This leads me to believe that the same identifier occurring in different locations in
+            //the source text may not be distinguished.  We could perhaps introduce a composite key
+            //involving "span" so that we could distinguish uses at different locations in the source text.
+            if (!AnnotationDictionary.ContainsKey(identifierNameExpr))
+            {
+                AnnotationDictionary.Add(identifierNameExpr, new List<List<String>>() { retAttrStrings });
+            }
+        }
+
         /// <summary>
         /// Helper method which accepts retreives the attributes associated with a symbol
         /// and adds them to our global table with a sn as the key
@@ -270,9 +221,7 @@ namespace SharpChecker
         private void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
         {
             // First check the variable to which we are assigning
-            var identifierName = assignmentExpression.Left as IdentifierNameSyntax;
-
-            if (identifierName != null)
+            if (assignmentExpression.Left is IdentifierNameSyntax identifierName)
             {
                 List<string> attrs = GetAttributes(context, identifierName);
 
@@ -285,8 +234,7 @@ namespace SharpChecker
             }
             else
             {
-                var memAccess = assignmentExpression.Left as MemberAccessExpressionSyntax;
-                if(memAccess != null)
+                if (assignmentExpression.Left is MemberAccessExpressionSyntax memAccess)
                 {
                     List<string> memAttrs = GetAttributes(context, memAccess);
 
@@ -371,7 +319,7 @@ namespace SharpChecker
             //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
             //variable checked for null which occur in that block an annotate them as nonnull
 
-            var walker = new SCBaseSyntaxWalker(rule, attributeName, AnnotationDictionary, context);
+            var walker = new SCBaseSyntaxWalker(rule, AnnotationDictionary, context);
             walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
             //Leaving this around for now as a reminder of some false starts.  Need to include this

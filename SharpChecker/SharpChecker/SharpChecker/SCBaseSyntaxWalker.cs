@@ -16,16 +16,14 @@ namespace SharpChecker
     class SCBaseSyntaxWalker : CSharpSyntaxWalker
     {
         private DiagnosticDescriptor rule;
-        private string attributeName;
         private Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         private SemanticModelAnalysisContext context;
 
         public int MyProperty { get; set; }
 
-        public SCBaseSyntaxWalker(DiagnosticDescriptor rule, string attributeName, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context)
+        public SCBaseSyntaxWalker(DiagnosticDescriptor rule, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context)
         {
             this.rule = rule;
-            this.attributeName = attributeName;
             this.AnnotationDictionary = annotationDictionary;
             this.context = context;
         }
@@ -114,7 +112,7 @@ namespace SharpChecker
 
                 if (returnTypeAttrStrings.Count() > 0)
                 {
-                    var diagnostic = Diagnostic.Create(rule, methodDecl.GetLocation(), attributeName);
+                    var diagnostic = Diagnostic.Create(rule, methodDecl.GetLocation(), string.Join(",", returnTypeAttrStrings));
                     context.ReportDiagnostic(diagnostic);
                 }
 
@@ -159,7 +157,7 @@ namespace SharpChecker
 
                         if(stringAttrs.Count() > 0)
                         {
-                            var diagnostic = Diagnostic.Create(rule, derivedMethParams[i].GetLocation(), attributeName);
+                            var diagnostic = Diagnostic.Create(rule, derivedMethParams[i].GetLocation(), string.Join(",", stringAttrs));
                             context.ReportDiagnostic(diagnostic);
                         }
                     }
@@ -191,13 +189,11 @@ namespace SharpChecker
             }
 
             // We have found an attribute, so now we verify the RHS
-            var invocationExpr = assignmentExpression.Right as InvocationExpressionSyntax;
-            if (invocationExpr != null)
+            if (assignmentExpression.Right is InvocationExpressionSyntax invocationExpr)
             {
                 var returnTypeAttrs = new List<String>();
 
-                var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-                if (identifierNameExpr != null)
+                if (invocationExpr.Expression is IdentifierNameSyntax identifierNameExpr)
                 {
                     if (AnnotationDictionary.ContainsKey(identifierNameExpr))
                     {
@@ -207,8 +203,7 @@ namespace SharpChecker
                 else
                 {
                     //If we don't have a local method invocation, we may have a static or instance method invocation
-                    var memberAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
-                    if (memberAccessExpr != null)
+                    if (invocationExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
                     {
                         if (AnnotationDictionary.ContainsKey(memberAccessExpr))
                         {
@@ -229,17 +224,16 @@ namespace SharpChecker
                 //If we haven't found a match then present a diagnotic error
                 if (expectedAttributes.Count() > 0)
                 {
-                    var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), attributeName);
+                    var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), string.Join(",", expectedAttributes));
                     context.ReportDiagnostic(diagnostic);
                 }
 
             }
             else
             {
-                var rhsLit = assignmentExpression.Right as LiteralExpressionSyntax;
-                if (rhsLit != null)
+                if (assignmentExpression.Right is LiteralExpressionSyntax rhsLit)
                 {
-                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), attributeName);
+                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), string.Join(",", expectedAttributes));
                     context.ReportDiagnostic(diagnostic);
                 }
                 else
@@ -272,10 +266,10 @@ namespace SharpChecker
 
             //Get the expected attributes for the arguments of this invocation
             var argList = invocationExpr.ArgumentList;
-            List<List<String>> expectedAttribute = null;
+            List<List<String>> expectedAttributes = null;
             if (AnnotationDictionary.ContainsKey(argList))
             {
-                expectedAttribute = AnnotationDictionary[argList];
+                expectedAttributes = AnnotationDictionary[argList];
             }
             else
             {
@@ -288,18 +282,17 @@ namespace SharpChecker
             //Grab the argument list so we can interrogate it
             var argumentList = invocationExpr.ArgumentList as ArgumentListSyntax;
 
-            for (int i = 0; i < expectedAttribute.Count; i++)
+            for (int i = 0; i < expectedAttributes.Count; i++)
             {
                 //If there are no required attributes for this argument, then move on to the next
-                if (expectedAttribute[i].Count == 0) continue;
+                if (expectedAttributes[i].Count == 0) continue;
 
                 //It may seem unnecessary to check that i is valid, since providing the incorrect number of arguments should not
                 //type check.  However, there is some candidate analysis while the code is incomplete.
                 if (i < argumentList.Arguments.Count())
                 {
                     //Here we are handling the case where the argument is an identifier
-                    var argI = argumentList.Arguments[i].Expression as IdentifierNameSyntax;
-                    if (argI != null)
+                    if (argumentList.Arguments[i].Expression is IdentifierNameSyntax argI)
                     {
                         List<String> argAttrs = new List<string>();
 
@@ -310,40 +303,37 @@ namespace SharpChecker
 
                         foreach (var argAttr in argAttrs)
                         {
-                            if (expectedAttribute[i].Contains(argAttr))
+                            if (expectedAttributes[i].Contains(argAttr))
                             {
                                 //We may want to create a deep copy of this object instead of
                                 //removing them directly from the source collection, as it stands only
                                 //making one verification pass, this should be ok
-                                expectedAttribute[i].Remove(argAttr);
+                                expectedAttributes[i].Remove(argAttr);
                             }
                         }
 
                         //If we haven't found a match then present a diagnotic error
-                        if (expectedAttribute[i].Count() > 0)
+                        if (expectedAttributes[i].Count() > 0)
                         {
-                            var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), attributeName);
+                            var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), string.Join(",", expectedAttributes[i]));
                             context.ReportDiagnostic(diagnostic);
                         }
                     }
                     else
                     {
                         //We are probably dealing with a literal - which cannot have the associated attribute
-                        var argLit = argumentList.Arguments[i].Expression as LiteralExpressionSyntax;
-                        if (argLit != null)
+                        if (argumentList.Arguments[i].Expression is LiteralExpressionSyntax argLit)
                         {
-                            var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), attributeName);
+                            var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), string.Join(",", expectedAttributes[i]));
                             context.ReportDiagnostic(diagnostic);
                         }
                         else
                         {
                             List<String> returnTypeAttrs = null;
-                            var argInvExpr = argumentList.Arguments[i].Expression as InvocationExpressionSyntax;
-                            if (argInvExpr != null)
+                            if (argumentList.Arguments[i].Expression is InvocationExpressionSyntax argInvExpr)
                             {
                                 //If we have a local method invocation
-                                var methodIdNameExpr = argInvExpr.Expression as IdentifierNameSyntax;
-                                if (methodIdNameExpr != null)
+                                if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
                                 {
                                     if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
                                     {
@@ -353,8 +343,7 @@ namespace SharpChecker
                                 else
                                 {
                                     //If we don't have a local method invocation, we may have a static or instance method invocation
-                                    var memberAccessExpr = argInvExpr.Expression as MemberAccessExpressionSyntax;
-                                    if (memberAccessExpr != null)
+                                    if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
                                     {
                                         if (AnnotationDictionary.ContainsKey(memberAccessExpr))
                                         {
@@ -369,16 +358,16 @@ namespace SharpChecker
                                 // Now we check the return type to see if there is an attribute assigned
                                 foreach (var retAttr in returnTypeAttrs)
                                 {
-                                    if (expectedAttribute[i].Contains(retAttr))
+                                    if (expectedAttributes[i].Contains(retAttr))
                                     {
-                                        expectedAttribute[i].Remove(retAttr);
+                                        expectedAttributes[i].Remove(retAttr);
                                     }
                                 }
 
                                 //If we haven't found a match then present a diagnotic error
-                                if (expectedAttribute[i].Count() > 0)
+                                if (expectedAttributes[i].Count() > 0)
                                 {
-                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), attributeName);
+                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), string.Join(",", expectedAttributes[i]));
                                     context.ReportDiagnostic(diagnostic);
                                 }
                             }
@@ -393,16 +382,16 @@ namespace SharpChecker
 
                                 foreach (var retAttr in returnTypeAttrs)
                                 {
-                                    if (expectedAttribute[i].Contains(retAttr))
+                                    if (expectedAttributes[i].Contains(retAttr))
                                     {
-                                        expectedAttribute[i].Remove(retAttr);
+                                        expectedAttributes[i].Remove(retAttr);
                                     }
                                 }
 
                                 //If we haven't found a match then present a diagnotic error
-                                if (expectedAttribute[i].Count() > 0)
+                                if (expectedAttributes[i].Count() > 0)
                                 {
-                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), attributeName);
+                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), string.Join(",", expectedAttributes[i]));
                                     context.ReportDiagnostic(diagnostic);
                                 }
 

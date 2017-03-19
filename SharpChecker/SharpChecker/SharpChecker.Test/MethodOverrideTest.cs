@@ -108,7 +108,7 @@ namespace SharpChecker.Test
                 }";
             var test = String.Concat(baseClass, overridingClass);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 51) };
-            VerifyDiag(test, diagLoc);
+            VerifyDiag(test, diagLoc, "Encrypted");
         }
 
         [TestMethod]
@@ -139,12 +139,12 @@ namespace SharpChecker.Test
         /// </summary>
         /// <param name="test"></param>
         /// <param name="diagLoc"></param>
-        private void VerifyDiag(string test, DiagnosticResultLocation[] diagLoc)
+        private void VerifyDiag(string test, DiagnosticResultLocation[] diagLoc, string attribute = "EncryptedAttribute")
         {
             var expected = new DiagnosticResult
             {
                 Id = "SharpCheckerMethodParams",
-                Message = String.Format("Attribute application error {0}", "EncryptedSandbox.EncryptedAttribute"),
+                Message = String.Format("Attribute application error {0}", attribute),
                 Severity = DiagnosticSeverity.Error,
                 Locations = diagLoc
             };
