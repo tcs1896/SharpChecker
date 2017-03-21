@@ -31,11 +31,6 @@ namespace SharpChecker.Test
 
             namespace EncryptedSandbox
             {
-                
-                
-                
-                
-
                 class TypeName
                 {   
                     [Encrypted]
@@ -179,12 +174,51 @@ namespace SharpChecker.Test
             VerifyCSharpDiagnostic(test);
         }
 
+
+        [TestMethod]
+        public void NoDiagnosticsResult_TernaryOperator()
+        {
+            //This unit test is failing when all tests are run, but not when it is executed in isolation
+            var body = @"                
+                ////////////////////////////////////////////////////
+                //Expression Statement - Assignment Statements
+                ///////////////////////////////////////////////////
+
+                //--Acceptable Cases--//
+                //This should be allowed because both braches of the conditional return a value  
+                //with the appropriate attribute
+                bool yep = true;
+                SendOverInternet(yep? Encrypt(""ending"") : Encrypt(plaintext));";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+
+            VerifyCSharpDiagnostic(test);
+        }
+
         /// <summary>
         /// Here we are assigning the result of a method with no attributes to a property
         /// which can only contain [Encrypted] values, so a diagnostic is generated.
         /// </summary>
         [TestMethod]
-        public void DecoratedPropAssignedToUndecoratedResult()
+        public void InvocationArgTernaryWhereFalseBranchBad()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //This should not be allowed because the false branch of the conditional doesn't
+                //return a value with the appropriate type
+                bool yep = true;
+                SendOverInternet(yep? Encrypt(""ending"") : RemoveSpecialChars(""testing"", 3));";
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 59) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        /// <summary>
+        /// Here we are assigning the result of a method with no attributes to a property
+        /// which can only contain [Encrypted] values, so a diagnostic is generated.
+        /// </summary>
+        [TestMethod]
+        public void AssignmentDecoratedPropToUndecoratedResult()
         {
             var body = @"                
                 //--Error Cases--//
@@ -192,12 +226,12 @@ namespace SharpChecker.Test
                 //doesn't have the appropriate attribute
                 Ciphertext = RemoveSpecialChars(plaintext, 3);";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 30) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 30) };
             VerifyDiag(test, diagLoc);
         }
 
         [TestMethod]
-        public void DecoratedPropAssignedToUndecoratedResultFromStaticMethod()
+        public void AssignmentDecoratedPropToUndecoratedResultFromStaticMethod()
         {
             var body = @"                
                 //--Error Cases--//
@@ -206,7 +240,20 @@ namespace SharpChecker.Test
                 //Introduce a static method call
                 Ciphertext = Utilities.ExecuteQuery(""Update user.workstatus set status = 'Hired'"");";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 49, 30) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 30) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void AssignmentDecoratedPropToUndecoratedResultFromConstructor()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //This is an example of assigning to a property - at the moment this should present an error
+                //because an attribute has been added to the property.
+                new Utilities().MyProperty = new Object();";
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 30) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -233,7 +280,7 @@ namespace SharpChecker.Test
                 //This should generate an error because 'RawText' does not have the [Encrypted] attribute
                 SendOverInternet(RawText);";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 47, 34) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 42, 34) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -245,7 +292,7 @@ namespace SharpChecker.Test
                 //This should generate an error because empty string literal does not have the [Encrypted] attribute
                 SendOverInternet("");";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 47, 34) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 42, 34) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -257,7 +304,7 @@ namespace SharpChecker.Test
                 //This should generate an error because empty string does not have the [Encrypted] attribute
                 SendOverInternet(String.Empty);";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 47, 34) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 42, 34) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -269,7 +316,7 @@ namespace SharpChecker.Test
                 //This should generate an error because RemoveSpecialChars does not return the [Encrypted] attribute
                 SendOverInternet(RemoveSpecialChars(Encrypt(plaintext), 1));";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 47, 34) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 42, 34) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -281,7 +328,7 @@ namespace SharpChecker.Test
                 //This should generate an error because RemoveSpecialChars does not return the [Encrypted] attribute
                 SendOverInternet(this.RemoveSpecialChars(Encrypt(plaintext), 0));";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 47, 34) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 42, 34) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -294,7 +341,7 @@ namespace SharpChecker.Test
                 SendOverInternet(RemoveSpecialChars(Encrypt(plaintext + "" ending""), (3 + 5)));";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] {
-                new DiagnosticResultLocation("Test0.cs", 47, 34)
+                new DiagnosticResultLocation("Test0.cs", 42, 34)
             };
             VerifyDiag(test, diagLoc);
         }

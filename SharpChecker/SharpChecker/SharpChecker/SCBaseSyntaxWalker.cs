@@ -102,7 +102,7 @@ namespace SharpChecker
                 foreach (var derTypeAttr in derivedReturnTypeAttrs)
                 {
                     string derTypeAttrString = derTypeAttr.AttributeClass.ToString();
-                    if(derTypeAttrString.EndsWith("Attribute"))
+                    if (derTypeAttrString.EndsWith("Attribute"))
                     {
                         derTypeAttrString = derTypeAttrString.Replace("Attribute", "");
                     }
@@ -121,7 +121,7 @@ namespace SharpChecker
 
                 //Now check to see if the attributes of the parameters agree with the overriden method
                 var derivedMethParams = methodDecl.ParameterList.Parameters;
-                if(derivedMethParams.Count() == 0) { return; } //No params to check
+                if (derivedMethParams.Count() == 0) { return; } //No params to check
 
                 if (overriddenMethod.DeclaringSyntaxReferences.FirstOrDefault()?.GetSyntax() is MethodDeclarationSyntax overriddenSyntax)
                 {
@@ -153,16 +153,16 @@ namespace SharpChecker
                         foreach (var derParamAttr in derAttrs)
                         {
                             var innerAttr = derParamAttr.Attributes;
-                            foreach(var ia in innerAttr)
+                            foreach (var ia in innerAttr)
                             {
-                                if(stringAttrs.Contains(ia.Name.ToString()))
+                                if (stringAttrs.Contains(ia.Name.ToString()))
                                 {
                                     stringAttrs.Remove(ia.Name.ToString());
                                 }
                             }
                         }
 
-                        if(stringAttrs.Count() > 0)
+                        if (stringAttrs.Count() > 0)
                         {
                             var diagnostic = Diagnostic.Create(rule, derivedMethParams[i].GetLocation(), string.Join(",", stringAttrs));
                             context.ReportDiagnostic(diagnostic);
@@ -216,67 +216,104 @@ namespace SharpChecker
                 return;
             }
 
-            // We have found an attribute, so now we verify the RHS
-            if (assignmentExpression.Right is InvocationExpressionSyntax invocationExpr)
+            var returnTypeAttrs = new List<String>();
+
+            switch (assignmentExpression.Right.Kind())
             {
-                var returnTypeAttrs = new List<String>();
-
-                if (invocationExpr.Expression is IdentifierNameSyntax identifierNameExpr)
-                {
-                    if (AnnotationDictionary.ContainsKey(identifierNameExpr))
+                case SyntaxKind.InvocationExpression:
+                    if (assignmentExpression.Right is InvocationExpressionSyntax invocationExpr
+                        && AnnotationDictionary.ContainsKey(invocationExpr.Expression))
                     {
-                        returnTypeAttrs = AnnotationDictionary[identifierNameExpr].FirstOrDefault();
+                        returnTypeAttrs = AnnotationDictionary[invocationExpr.Expression].FirstOrDefault();
                     }
-                }
-                else
-                {
-                    //If we don't have a local method invocation, we may have a static or instance method invocation
-                    if (invocationExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
-                    {
-                        if (AnnotationDictionary.ContainsKey(memberAccessExpr))
-                        {
-                            returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
-                        }
-                    }
-                }
-
-                // Now we check the return type to see if there is an attribute assigned
-                foreach (var retAttr in returnTypeAttrs)
-                {
-                    if (expectedAttributes.Contains(retAttr))
-                    {
-                        expectedAttributes.Remove(retAttr);
-                    }
-                }
-
-                //If we haven't found a match then present a diagnotic error
-                if (expectedAttributes.Count() > 0)
-                {
-                    var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), string.Join(",", expectedAttributes));
-                    context.ReportDiagnostic(diagnostic);
-                }
-
+                    break;
             }
-            else
+
+            // Now we check the return type to see if there is an attribute assigned
+            foreach (var retAttr in returnTypeAttrs)
             {
-                if (assignmentExpression.Right is LiteralExpressionSyntax rhsLit)
+                if (expectedAttributes.Contains(retAttr))
                 {
-                    var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), string.Join(",", expectedAttributes));
-                    context.ReportDiagnostic(diagnostic);
-                }
-                else
-                {
-                    var diagnostic = Diagnostic.Create(rule, assignmentExpression.GetLocation(), "Not implemented");
-                    context.ReportDiagnostic(diagnostic);
-                    //TODO: We should pull out methods such as this so that they can be used in several areas of the code
-                    //var fieldSymbol = context.SemanticModel.GetSymbolInfo(assignmentExpression.Right).Symbol as IFieldSymbol;
-                    //if (fieldSymbol != null)
-                    //{
-                    //    VerifyAttribute(context, assignmentExpression.Right, fieldSymbol, argAttrs, rule, description);
-                    //}
-                    //TODO: Add property symbols here
+                    expectedAttributes.Remove(retAttr);
                 }
             }
+
+            //If we haven't found a match then present a diagnotic error
+            if (expectedAttributes.Count() > 0)
+            {
+                var diagnostic = Diagnostic.Create(rule, assignmentExpression.Right.GetLocation(), string.Join(",", expectedAttributes));
+                context.ReportDiagnostic(diagnostic);
+            }
+
+            //// We have found an attribute, so now we verify the RHS
+            //if (assignmentExpression.Right is InvocationExpressionSyntax invocationExpr)
+            //{
+
+
+            //    if (invocationExpr.Expression is IdentifierNameSyntax identifierNameExpr)
+            //    {
+            //        if (AnnotationDictionary.ContainsKey(identifierNameExpr))
+            //        {
+            //            returnTypeAttrs = AnnotationDictionary[identifierNameExpr].FirstOrDefault();
+            //        }
+            //    }
+            //    else
+            //    {
+            //        //If we don't have a local method invocation, we may have a static or instance method invocation
+            //        if (invocationExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
+            //        {
+            //            if (AnnotationDictionary.ContainsKey(memberAccessExpr))
+            //            {
+            //                returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
+            //            }
+            //        }
+            //    }
+
+            //    // Now we check the return type to see if there is an attribute assigned
+            //    foreach (var retAttr in returnTypeAttrs)
+            //    {
+            //        if (expectedAttributes.Contains(retAttr))
+            //        {
+            //            expectedAttributes.Remove(retAttr);
+            //        }
+            //    }
+
+            //    //If we haven't found a match then present a diagnotic error
+            //    if (expectedAttributes.Count() > 0)
+            //    {
+            //        var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), string.Join(",", expectedAttributes));
+            //        context.ReportDiagnostic(diagnostic);
+            //    }
+
+            //}
+            //else
+            //{
+            //    if (assignmentExpression.Right is LiteralExpressionSyntax rhsLit)
+            //    {
+            //        var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), string.Join(",", expectedAttributes));
+            //        context.ReportDiagnostic(diagnostic);
+            //    }
+            //    else
+            //    {
+            //        //if (assignmentExpression.Right is MemberAccessExpressionSyntax memberAccessExpr)
+            //        //{
+            //        //    if (AnnotationDictionary.ContainsKey(memberAccessExpr))
+            //        //    {
+            //        //        returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
+            //        //    }
+            //        //}
+
+            //        var diagnostic = Diagnostic.Create(rule, assignmentExpression.GetLocation(), "Not implemented test");
+            //        context.ReportDiagnostic(diagnostic);
+            //        //TODO: We should pull out methods such as this so that they can be used in several areas of the code
+            //        //var fieldSymbol = context.SemanticModel.GetSymbolInfo(assignmentExpression.Right).Symbol as IFieldSymbol;
+            //        //if (fieldSymbol != null)
+            //        //{
+            //        //    VerifyAttribute(context, assignmentExpression.Right, fieldSymbol, argAttrs, rule, description);
+            //        //}
+            //        //TODO: Add property symbols here
+            //    }
+            //}
         }
 
 
@@ -319,164 +356,177 @@ namespace SharpChecker
                 //type check.  However, there is some candidate analysis while the code is incomplete.
                 if (i < argumentList.Arguments.Count())
                 {
-                    //Here we are handling the case where the argument is an identifier
-                    if (argumentList.Arguments[i].Expression is IdentifierNameSyntax argI)
+                    VerifyExpectedAttrInExpression(expectedAttributes[i], argumentList.Arguments[i].Expression);
+                }
+            }
+        }
+
+        private void VerifyExpectedAttrInExpression(List<string> expectedAttributes, SyntaxNode node)
+        {
+            //Need to make a local copy the expected attributes incase we recurse and use the same original
+            //for multiple branches
+            List<string> expectedAttr = new List<string>(expectedAttributes);
+
+            //Here we are handling the case where the argument is an identifier
+            if (node is IdentifierNameSyntax argI)
+            {
+                List<String> argAttrs = new List<string>();
+
+                if (AnnotationDictionary.ContainsKey(argI))
+                {
+                    argAttrs = AnnotationDictionary[argI].FirstOrDefault();
+                }
+
+                foreach (var argAttr in argAttrs)
+                {
+                    if (expectedAttr.Contains(argAttr))
                     {
-                        List<String> argAttrs = new List<string>();
+                        //We may want to create a deep copy of this object instead of
+                        //removing them directly from the source collection, as it stands only
+                        //making one verification pass, this should be ok
+                        expectedAttr.Remove(argAttr);
+                    }
+                }
 
-                        if (AnnotationDictionary.ContainsKey(argI))
+                //If we haven't found a match then present a diagnotic error
+                if (expectedAttr.Count() > 0)
+                {
+                    var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), string.Join(",", expectedAttr));
+                    context.ReportDiagnostic(diagnostic);
+                }
+            }
+            else if (node is ConditionalExpressionSyntax conditional)
+            {
+                VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenTrue);
+                VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenFalse);
+            }
+            else
+            {
+                //We are probably dealing with a literal - which cannot have the associated attribute
+                if (node is LiteralExpressionSyntax argLit)
+                {
+                    var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), string.Join(",", expectedAttr));
+                    context.ReportDiagnostic(diagnostic);
+                }
+                else
+                {
+                    List<String> returnTypeAttrs = null;
+                    if (node is InvocationExpressionSyntax argInvExpr)
+                    {
+                        //If we have a local method invocation
+                        if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
                         {
-                            argAttrs = AnnotationDictionary[argI].FirstOrDefault();
-                        }
-
-                        foreach (var argAttr in argAttrs)
-                        {
-                            if (expectedAttributes[i].Contains(argAttr))
+                            if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
                             {
-                                //We may want to create a deep copy of this object instead of
-                                //removing them directly from the source collection, as it stands only
-                                //making one verification pass, this should be ok
-                                expectedAttributes[i].Remove(argAttr);
+                                returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
+                            }
+                        }
+                        else
+                        {
+                            //If we don't have a local method invocation, we may have a static or instance method invocation
+                            if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
+                            {
+                                if (AnnotationDictionary.ContainsKey(memberAccessExpr))
+                                {
+                                    returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
+                                }
+                            }
+                        }
+                    }
+
+                    if (returnTypeAttrs != null)
+                    {
+                        // Now we check the return type to see if there is an attribute assigned
+                        foreach (var retAttr in returnTypeAttrs)
+                        {
+                            if (expectedAttr.Contains(retAttr))
+                            {
+                                expectedAttr.Remove(retAttr);
                             }
                         }
 
                         //If we haven't found a match then present a diagnotic error
-                        if (expectedAttributes[i].Count() > 0)
+                        if (expectedAttr.Count() > 0)
                         {
-                            var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), string.Join(",", expectedAttributes[i]));
+                            var diagnostic = Diagnostic.Create(rule, node.GetLocation(), string.Join(",", expectedAttr));
                             context.ReportDiagnostic(diagnostic);
                         }
                     }
-                    else
+                    else //We may be dealing with a field like String.Empty
                     {
-                        //We are probably dealing with a literal - which cannot have the associated attribute
-                        if (argumentList.Arguments[i].Expression is LiteralExpressionSyntax argLit)
+                        returnTypeAttrs = new List<string>();
+                        if (AnnotationDictionary.ContainsKey(node))
                         {
-                            var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), string.Join(",", expectedAttributes[i]));
+                            returnTypeAttrs = AnnotationDictionary[node].FirstOrDefault();
+                        }
+
+                        foreach (var retAttr in returnTypeAttrs)
+                        {
+                            if (expectedAttr.Contains(retAttr))
+                            {
+                                expectedAttr.Remove(retAttr);
+                            }
+                        }
+
+                        //If we haven't found a match then present a diagnotic error
+                        if (expectedAttr.Count() > 0)
+                        {
+                            var diagnostic = Diagnostic.Create(rule, node.GetLocation(), string.Join(",", expectedAttr));
                             context.ReportDiagnostic(diagnostic);
                         }
-                        else
-                        {
-                            List<String> returnTypeAttrs = null;
-                            if (argumentList.Arguments[i].Expression is InvocationExpressionSyntax argInvExpr)
-                            {
-                                //If we have a local method invocation
-                                if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
-                                {
-                                    if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
-                                    {
-                                        returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
-                                    }
-                                }
-                                else
-                                {
-                                    //If we don't have a local method invocation, we may have a static or instance method invocation
-                                    if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
-                                    {
-                                        if (AnnotationDictionary.ContainsKey(memberAccessExpr))
-                                        {
-                                            returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
-                                        }
-                                    }
-                                }
-                            }
 
-                            if (returnTypeAttrs != null)
-                            {
-                                // Now we check the return type to see if there is an attribute assigned
-                                foreach (var retAttr in returnTypeAttrs)
-                                {
-                                    if (expectedAttributes[i].Contains(retAttr))
-                                    {
-                                        expectedAttributes[i].Remove(retAttr);
-                                    }
-                                }
+                        //var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
+                        //if (fieldSymbol != null)
+                        //{
+                        //    var fieldAttrs = fieldSymbol.GetAttributes();
+                        //    foreach (var fieldAttr in fieldAttrs)
+                        //    {
+                        //        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
+                        //        {
+                        //            //TODO: Need mechanism to determine which attributes we care about so
+                        //            //that additional ones which are present do not throw off our analysis
+                        //            //and present warnings when they should not
+                        //            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
+                        //        }
+                        //    }
 
-                                //If we haven't found a match then present a diagnotic error
-                                if (expectedAttributes[i].Count() > 0)
-                                {
-                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), string.Join(",", expectedAttributes[i]));
-                                    context.ReportDiagnostic(diagnostic);
-                                }
-                            }
-                            else //We may be dealing with a field like String.Empty
-                            {
-                                returnTypeAttrs = new List<string>();
-                                var expr = argumentList.Arguments[i].Expression;
-                                if (AnnotationDictionary.ContainsKey(expr))
-                                {
-                                    returnTypeAttrs = AnnotationDictionary[expr].FirstOrDefault();
-                                }
+                        //    //If we haven't found a match then present a diagnotic error
+                        //    if (expectedAttribute[i].Count() > 0)
+                        //    {
+                        //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                        //        context.ReportDiagnostic(diagnostic);
+                        //    }
+                        //}
+                        //else
+                        //{
+                        //    var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
+                        //    if (propertySymbol != null)
+                        //    {
+                        //        var propAttrs = fieldSymbol.GetAttributes();
+                        //        foreach (var propAttr in propAttrs)
+                        //        {
+                        //            if (expectedAttribute[i].Contains(propAttr.AttributeClass.ToString()))
+                        //            {
+                        //                //TODO: Need mechanism to determine which attributes we care about so
+                        //                //that additional ones which are present do not throw off our analysis
+                        //                //and present warnings when they should not
+                        //                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
+                        //            }
+                        //        }
 
-                                foreach (var retAttr in returnTypeAttrs)
-                                {
-                                    if (expectedAttributes[i].Contains(retAttr))
-                                    {
-                                        expectedAttributes[i].Remove(retAttr);
-                                    }
-                                }
-
-                                //If we haven't found a match then present a diagnotic error
-                                if (expectedAttributes[i].Count() > 0)
-                                {
-                                    var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), string.Join(",", expectedAttributes[i]));
-                                    context.ReportDiagnostic(diagnostic);
-                                }
-
-                                //var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
-                                //if (fieldSymbol != null)
-                                //{
-                                //    var fieldAttrs = fieldSymbol.GetAttributes();
-                                //    foreach (var fieldAttr in fieldAttrs)
-                                //    {
-                                //        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
-                                //        {
-                                //            //TODO: Need mechanism to determine which attributes we care about so
-                                //            //that additional ones which are present do not throw off our analysis
-                                //            //and present warnings when they should not
-                                //            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
-                                //        }
-                                //    }
-
-                                //    //If we haven't found a match then present a diagnotic error
-                                //    if (expectedAttribute[i].Count() > 0)
-                                //    {
-                                //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
-                                //        context.ReportDiagnostic(diagnostic);
-                                //    }
-                                //}
-                                //else
-                                //{
-                                //    var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
-                                //    if (propertySymbol != null)
-                                //    {
-                                //        var propAttrs = fieldSymbol.GetAttributes();
-                                //        foreach (var propAttr in propAttrs)
-                                //        {
-                                //            if (expectedAttribute[i].Contains(propAttr.AttributeClass.ToString()))
-                                //            {
-                                //                //TODO: Need mechanism to determine which attributes we care about so
-                                //                //that additional ones which are present do not throw off our analysis
-                                //                //and present warnings when they should not
-                                //                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
-                                //            }
-                                //        }
-
-                                //        //If we haven't found a match then present a diagnotic error
-                                //        if (expectedAttribute[i].Count() > 0)
-                                //        {
-                                //            var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
-                                //            context.ReportDiagnostic(diagnostic);
-                                //        }
-                                //    }
-                                //    else
-                                //    {
-                                //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), nameof(AttributeType.NotImplemented));
-                                //        context.ReportDiagnostic(diagnostic);
-                                //    }
-                                //}
-                            }
-                        }
+                        //        //If we haven't found a match then present a diagnotic error
+                        //        if (expectedAttribute[i].Count() > 0)
+                        //        {
+                        //            var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                        //            context.ReportDiagnostic(diagnostic);
+                        //        }
+                        //    }
+                        //    else
+                        //    {
+                        //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), nameof(AttributeType.NotImplemented));
+                        //        context.ReportDiagnostic(diagnostic);
+                        //    }
+                        //}
                     }
                 }
             }

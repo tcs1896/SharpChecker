@@ -11,8 +11,9 @@ namespace EncryptedSandbox
     {
         static void Main(string[] args)
         {
-            //new Program().sendText();
-            //Console.ReadLine();
+            var prog = new Program();
+            var my = prog.Encrypt("secret message");
+            Console.ReadLine();
         }
 
         [return:Encrypted]
@@ -43,8 +44,6 @@ namespace EncryptedSandbox
         [Encrypted]
         public string Ciphertext { get; set; }
 
-        //TODO: How do we determine the class hierarchy associated with these attributes?
-        //This may be a good way to specify type annotation hierarchy.
         [NotEncrypted]
         public string RawText { get; set; }
 
@@ -97,13 +96,13 @@ namespace EncryptedSandbox
             SendOverInternet(Ciphertext);
             //This is ok because the return type of the 'Encrypt' method has the [Encrypted] attribute
             SendOverInternet(Encrypt(plaintext));
-            //TODO: This should be allowed because both braches of the conditional return a value with the 
+            //This should be allowed because both braches of the conditional return a value with the 
             bool yep = true;
-            SendOverInternet(yep ? Encrypt(plaintext + " ending") : Encrypt(plaintext));
-            //TODO: These should be acceptable
+            SendOverInternet(yep ? Encrypt(plaintext + " ending") : Encrypt("testing"));
+            //These should be acceptable
             if (yep)
             {
-                Console.WriteLine("yep");
+                Console.WriteLine(myInt);
             }
             this.ProgramFactory().RemoveSpecialChars(plaintext, 5);
 
@@ -118,7 +117,6 @@ namespace EncryptedSandbox
             SendOverInternet(RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)));
             SendOverInternet(yep ? RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)) : Encrypt(plaintext));
             SendOverInternet(plaintext + " ending");
-    
         }
     }
 }

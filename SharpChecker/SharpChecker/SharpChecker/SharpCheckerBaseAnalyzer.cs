@@ -13,6 +13,10 @@ namespace SharpChecker
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
     public class SharpCheckerBaseAnalyzer : DiagnosticAnalyzer
     {
+        //Could we invert control here, so that our analyzer calls out to a factory method which returns array 
+        //of supported diagnostics.  I'm imagining one base method which would register the basic functionality.
+        //Type system creators could then override that method to add their own diagnostics to the list before
+        //invoking the base functionality, so that the whole accumulated list is returned here.
         public const string DiagnosticId = "SharpCheckerMethodParams";
         internal const string Title = "Error in attribute applications";
         internal const string MessageFormat = "Attribute application error {0}";
@@ -26,7 +30,7 @@ namespace SharpChecker
         {
             //At one point I was thinking that we needed assurances about the execution of certain actions which couldn't 
             //be counted upon unless we did all of our analysis in one place (the endcompilation action).  However, given
-            //the new design of accumulating all the type annoations in a collection we can leverage the different types of
+            //the new design of accumulating all the type annotations in a collection we can leverage the different types of
             //actions which Roslyn exposes.
             //context.RegisterCompilationAction(compilationContext =>
             //{
@@ -45,11 +49,10 @@ namespace SharpChecker
                 //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
                 //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
                 //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
-                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.GetAttributes, 
+                compilationContext.RegisterSyntaxNodeAction<SyntaxKind>(analyzer.AnalyzeExpression, 
                     SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression); 
 
                 // Register an end action to report diagnostics based on the final state.
-                //compilationContext.RegisterCompilationEndAction(analyzer.CompilationEndAction);
                 compilationContext.RegisterSemanticModelAction(analyzer.VerifyTypeAnnotations);
             });
         }

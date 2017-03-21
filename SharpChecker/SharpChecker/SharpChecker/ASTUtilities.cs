@@ -26,14 +26,14 @@ namespace SharpChecker
         public ASTUtilities(DiagnosticDescriptor rule, CompilationStartAnalysisContext compilationContext)
         {
             this.rule = rule;
-            //We may want to search for attribute definitions which are decorated with something like 
-            //[SharpChecker] then include these attributes in our analysis...
+            //Search for attribute definitions which are decorated with [SharpChecker] 
+            // then include these attributes in our analysis...
             //
             //[SharpChecker]
             //[AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
             //class EncryptedAttribute : Attribute
             //{}
-            foreach(var tree in compilationContext.Compilation.SyntaxTrees)
+            foreach (var tree in compilationContext.Compilation.SyntaxTrees)
             {
                 var classes = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
                 foreach (var clazz in classes)
@@ -41,6 +41,10 @@ namespace SharpChecker
                     //If there are no attributes decorating this class then move on
                     if(clazz.AttributeLists.Count() == 0) { continue; }
 
+                    //Using the syntax of the class declaration look for both an AttributeUsage
+                    //attribute which makes the class an attribute declaration, as well as a
+                    //SharpChecker attribute which we are using to mark attributes we would
+                    //like to analyze
                     bool hasAttributeUsage = false;
                     bool hasSharpChecker = false;
                     foreach (var attrList in clazz.AttributeLists)
@@ -80,21 +84,31 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Descend into the syntax node as far as necessary to determine the associated attributes which are expected.
-        /// This is the executed by the SyntaxNodeActions fired by Roslyn.
+        /// Serves as an entry point for the analysis
         /// </summary>
         /// <param name="context"></param>
-        public void GetAttributes(SyntaxNodeAnalysisContext context)
+        public void AnalyzeExpression(SyntaxNodeAnalysisContext context)
+        {
+            AnalyzeExpression(context, context.Node);
+        }
+
+        /// <summary>
+        /// Descend into the syntax tree as far as necessary to determine the associated attributes which are expected.
+        /// This is the executed by the SyntaxNodeActions fired by Roslyn.  Called recursively when appropriate below
+        /// as we decend into the tree.
+        /// </summary>
+        /// <param name="context"></param>
+        public void AnalyzeExpression(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
             //Determine what type of sytax node we are dealing with
-            switch (context.Node.Kind())
+            switch (node.Kind())
             {
                 case SyntaxKind.InvocationExpression:
-                    var invocationExpr = context.Node as InvocationExpressionSyntax;
+                    var invocationExpr = node as InvocationExpressionSyntax;
                     AnalyzeInvocationExpr(context, invocationExpr);
                     break;
                 case SyntaxKind.SimpleAssignmentExpression:
-                    var assignmentExpression = context.Node as AssignmentExpressionSyntax;
+                    var assignmentExpression = node as AssignmentExpressionSyntax;
                     AnalyzeAssignmentExpression(context, assignmentExpression);
                     break;
             }
@@ -131,7 +145,15 @@ namespace SharpChecker
             var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
             if (returnTypeAttrs.Count() > 0)
             {
-                AddAttributesToDictionary(identifierNameExpr, returnTypeAttrs);
+                var retAttrStrings = GetSharpCheckerAttributeStrings(returnTypeAttrs);
+                //An exception was generated here because we were attempting to add the same name twice.
+                //This leads me to believe that the same identifier occurring in different locations in
+                //the source text may not be distinguished.  We could perhaps introduce a composite key
+                //involving "span" so that we could distinguish uses at different locations in the source text.
+                if (!AnnotationDictionary.ContainsKey(identifierNameExpr))
+                {
+                    AnnotationDictionary.Add(identifierNameExpr, new List<List<String>>() { retAttrStrings });
+                }
             }
 
             //Grab the argument list so we can interrogate it
@@ -148,18 +170,23 @@ namespace SharpChecker
                 else
                 {
                     //If this is another invocation expression then we should recurse
-                    //This is an important pattern which should be replicated elsewhere
+                    //This is an important pattern which should be replicated elsewhere.
                     //As an example: If we have a binary expression we should recursively 
                     //analyze the right and left then combine the result - like type checking
                     if (argumentList.Arguments[i].Expression is InvocationExpressionSyntax argInvExpr)
                     {
                         AnalyzeInvocationExpr(context, argInvExpr);
                     }
+                    else if(argumentList.Arguments[i].Expression is ConditionalExpressionSyntax conditional)
+                    {
+                        //We are dealing with a ternary operator, and need to know the annotated type of each branch
+                        AnalyzeExpression(context, conditional.WhenTrue);
+                        AnalyzeExpression(context, conditional.WhenFalse);
+                    }
                     else
                     {
                         if (context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol is IFieldSymbol fieldSymbol)
                         {
-                            //var fieldAttrs = fieldSymbol.GetAttributes();
                             AddSymbolAttributes(argumentList.Arguments[i].Expression, fieldSymbol);
                         }
                         else
@@ -227,19 +254,6 @@ namespace SharpChecker
             }
 
             return retAttrStrings;
-        }
-
-        private void AddAttributesToDictionary(IdentifierNameSyntax identifierNameExpr, ImmutableArray<AttributeData> returnTypeAttrs)
-        {
-            var retAttrStrings = GetSharpCheckerAttributeStrings(returnTypeAttrs);
-            //An exception was generated here because we were attempting to add the same name twice.
-            //This leads me to believe that the same identifier occurring in different locations in
-            //the source text may not be distinguished.  We could perhaps introduce a composite key
-            //involving "span" so that we could distinguish uses at different locations in the source text.
-            if (!AnnotationDictionary.ContainsKey(identifierNameExpr))
-            {
-                AnnotationDictionary.Add(identifierNameExpr, new List<List<String>>() { retAttrStrings });
-            }
         }
 
         /// <summary>
