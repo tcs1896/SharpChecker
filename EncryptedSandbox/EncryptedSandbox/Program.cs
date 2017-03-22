@@ -72,9 +72,8 @@ namespace EncryptedSandbox
             //Introduce a static method call
             Result = Utilities.ExecuteQuery("Update user.workstatus set status='Hired'");
 
-            //TODO: This is an example of assigning to a property - at the moment this should present an error
-            //because a attribute has been added to the property.  I don't think I have appropriately
-            //handled the right hand side.
+            //This is an example of assigning to a property - at the moment this should present an error
+            //because an attribute has been added to the property.  
             new Utilities().MyProperty = new Object();
             Ciphertext = "";
             Ciphertext = String.Empty;
