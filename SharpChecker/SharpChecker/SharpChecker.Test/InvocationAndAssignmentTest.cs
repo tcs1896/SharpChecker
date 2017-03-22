@@ -253,7 +253,7 @@ namespace SharpChecker.Test
                 //because an attribute has been added to the property.
                 new Utilities().MyProperty = new Object();";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 30) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 46) };
             VerifyDiag(test, diagLoc);
         }
 

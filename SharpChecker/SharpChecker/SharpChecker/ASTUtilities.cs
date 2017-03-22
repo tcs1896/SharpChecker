@@ -23,7 +23,7 @@ namespace SharpChecker
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor rule;
 
-        public ASTUtilities(DiagnosticDescriptor rule, CompilationStartAnalysisContext compilationContext)
+        public ASTUtilities(DiagnosticDescriptor rule, IEnumerable<SyntaxTree> trees)
         {
             this.rule = rule;
             //Search for attribute definitions which are decorated with [SharpChecker] 
@@ -33,7 +33,7 @@ namespace SharpChecker
             //[AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
             //class EncryptedAttribute : Attribute
             //{}
-            foreach (var tree in compilationContext.Compilation.SyntaxTrees)
+            foreach (var tree in trees)
             {
                 var classes = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
                 foreach (var clazz in classes)

@@ -199,16 +199,24 @@ namespace SharpChecker
         /// </summary>
         private void VerifyAssignmentExpr(AssignmentExpressionSyntax assignmentExpression)
         {
-            // First check the variable to which we are assigning
-            var identifierName = assignmentExpression.Left as IdentifierNameSyntax;
-
-            //Get the expected attributes for the arguments of this invocation
             List<String> expectedAttributes = null;
-            if (identifierName != null && AnnotationDictionary.ContainsKey(identifierName))
+            // First check the variable to which we are assigning
+            if (assignmentExpression.Left is IdentifierNameSyntax identifierName)
             {
-                expectedAttributes = AnnotationDictionary[identifierName].FirstOrDefault();
+                if (AnnotationDictionary.ContainsKey(identifierName))
+                {
+                    expectedAttributes = AnnotationDictionary[identifierName].FirstOrDefault();
+                }
             }
-            else
+            else if (assignmentExpression.Left is MemberAccessExpressionSyntax memAccess)
+            {
+                if (AnnotationDictionary.ContainsKey(memAccess))
+                {
+                    expectedAttributes = AnnotationDictionary[memAccess].FirstOrDefault();
+                }
+            }
+
+            if(expectedAttributes == null || expectedAttributes.Count() == 0)
             {
                 //There is nothing to verify, or we need to introduce the default annotation
                 //Should we return here in the case of nothing to verify?
@@ -248,8 +256,7 @@ namespace SharpChecker
             //// We have found an attribute, so now we verify the RHS
             //if (assignmentExpression.Right is InvocationExpressionSyntax invocationExpr)
             //{
-
-
+            //    var returnTypeAttrs = new List<String>();
             //    if (invocationExpr.Expression is IdentifierNameSyntax identifierNameExpr)
             //    {
             //        if (AnnotationDictionary.ContainsKey(identifierNameExpr))

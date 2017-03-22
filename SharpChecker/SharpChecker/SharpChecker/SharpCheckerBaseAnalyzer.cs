@@ -41,7 +41,7 @@ namespace SharpChecker
             context.RegisterCompilationStartAction(compilationContext =>
             {
                 // Perform any setup necessary for our analysis in the constructor
-                var analyzer = new ASTUtilities(Rule, compilationContext);
+                var analyzer = new ASTUtilities(Rule, compilationContext.Compilation.SyntaxTrees);
 
                 // Register an intermediate non-end action that accesses and modifies the state.
                 //compilationContext.RegisterSymbolAction(analyzer.AnalyzeNode, SymbolKind.NamedType, SymbolKind.Method);
