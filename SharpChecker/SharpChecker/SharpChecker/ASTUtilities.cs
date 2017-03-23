@@ -1,8 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
@@ -27,12 +25,7 @@ namespace SharpChecker
         {
             this.rule = rule;
             //Search for attribute definitions which are decorated with [SharpChecker] 
-            // then include these attributes in our analysis...
-            //
-            //[SharpChecker]
-            //[AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-            //class EncryptedAttribute : Attribute
-            //{}
+            //then include these attributes in our analysis
             foreach (var tree in trees)
             {
                 var classes = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
@@ -42,41 +35,24 @@ namespace SharpChecker
                     if(clazz.AttributeLists.Count() == 0) { continue; }
 
                     //Using the syntax of the class declaration look for both an AttributeUsage
-                    //attribute which makes the class an attribute declaration, as well as a
-                    //SharpChecker attribute which we are using to mark attributes we would
-                    //like to analyze
+                    //attribute which makes the class an attribute declaration, as well as a SharpChecker
+                    //attribute which we are using to mark attributes we would like to analyze
                     bool hasAttributeUsage = false;
                     bool hasSharpChecker = false;
                     foreach (var attrList in clazz.AttributeLists)
                     {
                         foreach (var attr in attrList.Attributes)
                         {
-                            var attrClass = attr.Name.ToString();
-                            if (attrClass.EndsWith("Attribute"))
-                            {
-                                attrClass = attrClass.Replace("Attribute", "");
-                            }
-
-                            if (attrClass == "AttributeUsage")
-                            {
-                                hasAttributeUsage = true;
-                            }
-
-                            if (attrClass == "SharpChecker")
-                            {
-                                hasSharpChecker = true;
-                            }
+                            var attrClass = RemoveAttributeEnding(attr.Name.ToString());
+                            hasAttributeUsage |= (attrClass == "AttributeUsage");
+                            hasSharpChecker |= (attrClass == "SharpChecker");
                         }
                     }
 
                     //If this was defined as an attribute, and has the [SharpChecker] attribute
                     if (hasAttributeUsage && hasSharpChecker)
                     {
-                        var className = clazz.Identifier.Text;
-                        if (className.EndsWith("Attribute"))
-                        {
-                            className = className.Replace("Attribute", "");
-                        }
+                        var className = RemoveAttributeEnding(clazz.Identifier.Text);
                         SharpCheckerAttributes.Add(className);
                     }
                 }
@@ -84,7 +60,17 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Serves as an entry point for the analysis
+        /// Helper method used to remove the "Attribute" suffix present in certain contexts
+        /// </summary>
+        /// <param name="raw">A string which may end in "Attribute"</param>
+        /// <returns>The argument value without the "Attribute" suffix</returns>
+        public string RemoveAttributeEnding(string raw)
+        {
+            return raw.EndsWith("Attribute") ? raw.Replace("Attribute", "") : raw;
+        }
+
+        /// <summary>
+        /// Serves as an entry point for the analysis.  This is the executed by the SyntaxNodeActions fired by Roslyn. 
         /// </summary>
         /// <param name="context"></param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context)
@@ -94,8 +80,7 @@ namespace SharpChecker
 
         /// <summary>
         /// Descend into the syntax tree as far as necessary to determine the associated attributes which are expected.
-        /// This is the executed by the SyntaxNodeActions fired by Roslyn.  Called recursively when appropriate below
-        /// as we decend into the tree.
+        /// Called recursively when appropriate below as we decend into the tree.
         /// </summary>
         /// <param name="context"></param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context, SyntaxNode node)
@@ -235,18 +220,19 @@ namespace SharpChecker
             }
         }
 
+        /// <summary>
+        /// Accepts a collection of attributes and filters them down to those which were discovered
+        /// to have the [SharpChecker] attribute
+        /// </summary>
+        /// <param name="returnTypeAttrs"></param>
+        /// <returns></returns>
         private List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
         {
             var retAttrStrings = new List<String>();
             foreach(var attData in returnTypeAttrs)
             {
                 //See if we have previosly recorded this as a attribute we are interested in
-                string att = attData.AttributeClass.MetadataName;
-                if (att.EndsWith("Attribute"))
-                {
-                    att = att.Replace("Attribute", "");
-                }
-
+                string att = RemoveAttributeEnding(attData.AttributeClass.MetadataName);
                 if (SharpCheckerAttributes.Contains(att))
                 {
                     retAttrStrings.Add(att);

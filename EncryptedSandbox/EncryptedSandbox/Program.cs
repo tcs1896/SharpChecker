@@ -12,7 +12,7 @@ namespace EncryptedSandbox
         static void Main(string[] args)
         {
             var prog = new Program();
-            var my = prog.Encrypt("secret message");
+            prog.SendText();
             Console.ReadLine();
         }
 

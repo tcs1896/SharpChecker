@@ -1,11 +1,6 @@
-using System;
-using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Linq;
-using System.Threading;
 using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp;
-using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 
 namespace SharpChecker
@@ -28,23 +23,10 @@ namespace SharpChecker
 
         public override void Initialize(AnalysisContext context)
         {
-            //At one point I was thinking that we needed assurances about the execution of certain actions which couldn't 
-            //be counted upon unless we did all of our analysis in one place (the endcompilation action).  However, given
-            //the new design of accumulating all the type annotations in a collection we can leverage the different types of
-            //actions which Roslyn exposes.
-            //context.RegisterCompilationAction(compilationContext =>
-            //{
-            //    var analyzer = new ASTUtilities(Rule, attributeName);
-            //    analyzer.CompilationEndAction(compilationContext);
-            //});
-
             context.RegisterCompilationStartAction(compilationContext =>
             {
                 // Perform any setup necessary for our analysis in the constructor
                 var analyzer = new ASTUtilities(Rule, compilationContext.Compilation.SyntaxTrees);
-
-                // Register an intermediate non-end action that accesses and modifies the state.
-                //compilationContext.RegisterSymbolAction(analyzer.AnalyzeNode, SymbolKind.NamedType, SymbolKind.Method);
 
                 //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
                 //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
@@ -55,10 +37,16 @@ namespace SharpChecker
                 // Register an end action to report diagnostics based on the final state.
                 compilationContext.RegisterSemanticModelAction(analyzer.VerifyTypeAnnotations);
             });
-        }
 
-        //We may want to define methods here which are invoked above.  That way if someone would like
-        //to override the default behavior, they may do so.
-        //Alternatively they could override the methods in ASTUtilities like analyzer.AnalyzeNode
+            //At one point I was thinking that we needed assurances about the execution of certain actions which couldn't 
+            //be counted upon unless we did all of our analysis in one place (the endcompilation action).  However, given
+            //the new design of accumulating all the type annotations in a collection we can leverage the different types of
+            //actions which Roslyn exposes.
+            //context.RegisterCompilationAction(compilationContext =>
+            //{
+            //    var analyzer = new ASTUtilities(Rule, attributeName);
+            //    analyzer.CompilationEndAction(compilationContext);
+            //});
+        }
     }
 }

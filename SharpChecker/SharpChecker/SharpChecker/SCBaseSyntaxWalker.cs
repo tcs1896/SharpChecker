@@ -7,9 +7,6 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using static SharpChecker.ASTUtilities;
 
 namespace SharpChecker
 {
@@ -19,8 +16,6 @@ namespace SharpChecker
         private Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         private SemanticModelAnalysisContext context;
         private List<string> sharpCheckerAttributes;
-
-        public int MyProperty { get; set; }
 
         public SCBaseSyntaxWalker(DiagnosticDescriptor rule, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
         {
@@ -37,21 +32,6 @@ namespace SharpChecker
         /// <param name="node"></param>
         public override void Visit(SyntaxNode node)
         {
-            //Visit all of the relevant nodes of the tree adding annotations
-            //SyntaxWalker
-            //VisitInvocationExpression{
-            //if(Kind = something)
-            //      invocationSimple()
-            //else(Kind = somethingelse)
-            //      invocationSomethingElse()
-            //}
-            //
-            //Method to be overridden if default behavior is not desired
-            //protected virtual invocationSimple()
-            //{
-            //      enforce subtyping
-            //}
-
             base.Visit(node);
         }
 
@@ -102,10 +82,7 @@ namespace SharpChecker
                 foreach (var derTypeAttr in derivedReturnTypeAttrs)
                 {
                     string derTypeAttrString = derTypeAttr.AttributeClass.ToString();
-                    if (derTypeAttrString.EndsWith("Attribute"))
-                    {
-                        derTypeAttrString = derTypeAttrString.Replace("Attribute", "");
-                    }
+                    derTypeAttrString = derTypeAttrString.EndsWith("Attribute") ? derTypeAttrString.Replace("Attribute", "") : derTypeAttrString;
 
                     if (returnTypeAttrStrings.Contains(derTypeAttrString))
                     {
@@ -172,6 +149,12 @@ namespace SharpChecker
             }
         }
 
+        /// <summary>
+        /// Accepts a collection of attributes and filters them down to those which were discovered
+        /// to have the [SharpChecker] attribute
+        /// </summary>
+        /// <param name="returnTypeAttrs"></param>
+        /// <returns></returns>
         private List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
         {
             var retAttrStrings = new List<String>();
@@ -179,10 +162,7 @@ namespace SharpChecker
             {
                 //See if we have previosly recorded this as a attribute we are interested in
                 string att = attData.AttributeClass.MetadataName;
-                if (att.EndsWith("Attribute"))
-                {
-                    att = att.Replace("Attribute", "");
-                }
+                att = att.EndsWith("Attribute") ? att.Replace("Attribute", "") : att;
 
                 if (sharpCheckerAttributes.Contains(att))
                 {
@@ -252,75 +232,6 @@ namespace SharpChecker
                 var diagnostic = Diagnostic.Create(rule, assignmentExpression.Right.GetLocation(), string.Join(",", expectedAttributes));
                 context.ReportDiagnostic(diagnostic);
             }
-
-            //// We have found an attribute, so now we verify the RHS
-            //if (assignmentExpression.Right is InvocationExpressionSyntax invocationExpr)
-            //{
-            //    var returnTypeAttrs = new List<String>();
-            //    if (invocationExpr.Expression is IdentifierNameSyntax identifierNameExpr)
-            //    {
-            //        if (AnnotationDictionary.ContainsKey(identifierNameExpr))
-            //        {
-            //            returnTypeAttrs = AnnotationDictionary[identifierNameExpr].FirstOrDefault();
-            //        }
-            //    }
-            //    else
-            //    {
-            //        //If we don't have a local method invocation, we may have a static or instance method invocation
-            //        if (invocationExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
-            //        {
-            //            if (AnnotationDictionary.ContainsKey(memberAccessExpr))
-            //            {
-            //                returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
-            //            }
-            //        }
-            //    }
-
-            //    // Now we check the return type to see if there is an attribute assigned
-            //    foreach (var retAttr in returnTypeAttrs)
-            //    {
-            //        if (expectedAttributes.Contains(retAttr))
-            //        {
-            //            expectedAttributes.Remove(retAttr);
-            //        }
-            //    }
-
-            //    //If we haven't found a match then present a diagnotic error
-            //    if (expectedAttributes.Count() > 0)
-            //    {
-            //        var diagnostic = Diagnostic.Create(rule, invocationExpr.GetLocation(), string.Join(",", expectedAttributes));
-            //        context.ReportDiagnostic(diagnostic);
-            //    }
-
-            //}
-            //else
-            //{
-            //    if (assignmentExpression.Right is LiteralExpressionSyntax rhsLit)
-            //    {
-            //        var diagnostic = Diagnostic.Create(rule, rhsLit.GetLocation(), string.Join(",", expectedAttributes));
-            //        context.ReportDiagnostic(diagnostic);
-            //    }
-            //    else
-            //    {
-            //        //if (assignmentExpression.Right is MemberAccessExpressionSyntax memberAccessExpr)
-            //        //{
-            //        //    if (AnnotationDictionary.ContainsKey(memberAccessExpr))
-            //        //    {
-            //        //        returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
-            //        //    }
-            //        //}
-
-            //        var diagnostic = Diagnostic.Create(rule, assignmentExpression.GetLocation(), "Not implemented test");
-            //        context.ReportDiagnostic(diagnostic);
-            //        //TODO: We should pull out methods such as this so that they can be used in several areas of the code
-            //        //var fieldSymbol = context.SemanticModel.GetSymbolInfo(assignmentExpression.Right).Symbol as IFieldSymbol;
-            //        //if (fieldSymbol != null)
-            //        //{
-            //        //    VerifyAttribute(context, assignmentExpression.Right, fieldSymbol, argAttrs, rule, description);
-            //        //}
-            //        //TODO: Add property symbols here
-            //    }
-            //}
         }
 
 
@@ -368,6 +279,11 @@ namespace SharpChecker
             }
         }
 
+        /// <summary>
+        /// Used to confirm that the expression in node has the expected attributes
+        /// </summary>
+        /// <param name="expectedAttributes">A collection of expected attributes</param>
+        /// <param name="node">The node which is being analyzed</param>
         private void VerifyExpectedAttrInExpression(List<string> expectedAttributes, SyntaxNode node)
         {
             //Need to make a local copy the expected attributes incase we recurse and use the same original
@@ -388,9 +304,6 @@ namespace SharpChecker
                 {
                     if (expectedAttr.Contains(argAttr))
                     {
-                        //We may want to create a deep copy of this object instead of
-                        //removing them directly from the source collection, as it stands only
-                        //making one verification pass, this should be ok
                         expectedAttr.Remove(argAttr);
                     }
                 }
@@ -404,6 +317,7 @@ namespace SharpChecker
             }
             else if (node is ConditionalExpressionSyntax conditional)
             {
+                //Verify each branch of a ternary conditional expression
                 VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenTrue);
                 VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenFalse);
             }
@@ -490,13 +404,9 @@ namespace SharpChecker
                         //    {
                         //        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
                         //        {
-                        //            //TODO: Need mechanism to determine which attributes we care about so
-                        //            //that additional ones which are present do not throw off our analysis
-                        //            //and present warnings when they should not
                         //            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
                         //        }
                         //    }
-
                         //    //If we haven't found a match then present a diagnotic error
                         //    if (expectedAttribute[i].Count() > 0)
                         //    {
@@ -520,7 +430,6 @@ namespace SharpChecker
                         //                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
                         //            }
                         //        }
-
                         //        //If we haven't found a match then present a diagnotic error
                         //        if (expectedAttribute[i].Count() > 0)
                         //        {
