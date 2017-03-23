@@ -81,7 +81,7 @@ namespace SharpChecker
 
                 foreach (var derTypeAttr in derivedReturnTypeAttrs)
                 {
-                    string derTypeAttrString = derTypeAttr.AttributeClass.ToString();
+                    string derTypeAttrString = derTypeAttr.AttributeClass.MetadataName.ToString();
                     derTypeAttrString = derTypeAttrString.EndsWith("Attribute") ? derTypeAttrString.Replace("Attribute", "") : derTypeAttrString;
 
                     if (returnTypeAttrStrings.Contains(derTypeAttrString))
@@ -92,7 +92,7 @@ namespace SharpChecker
 
                 if (returnTypeAttrStrings.Count() > 0)
                 {
-                    var diagnostic = Diagnostic.Create(rule, methodDecl.GetLocation(), string.Join(",", returnTypeAttrStrings));
+                    var diagnostic = Diagnostic.Create(rule, methodDecl.Identifier.GetLocation(), string.Join(",", returnTypeAttrStrings));
                     context.ReportDiagnostic(diagnostic);
                 }
 

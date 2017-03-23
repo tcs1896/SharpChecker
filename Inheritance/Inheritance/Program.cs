@@ -1,4 +1,5 @@
-﻿using System;
+﻿using SharpChecker;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -13,6 +14,7 @@ namespace Inheritance
         }
     }
 
+    [SharpChecker]
     [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
     class EncryptedAttribute : Attribute
     {
@@ -29,20 +31,28 @@ namespace Inheritance
     {
         protected List<double> grades = new List<double>();
 
-        public void AddGrade(double grade)
+        public virtual void AddGrade([Encrypted] double grade)
         {
             grades.Add(grade);
         }
 
+        [return:Encrypted]
         public abstract double GetGPA();
     }
 
     class Graduate : Student
     {
+        [return:Encrypted]
         public override double GetGPA()
         {
             double average = (grades.Sum() / grades.Count()) * 1.05;
             return average;
+        }
+
+        public override void AddGrade(double grade)
+        {
+            double inflation = grade + 1;
+            grades.Add(inflation);
         }
     }
 
@@ -52,6 +62,12 @@ namespace Inheritance
         {
             double average = grades.Sum() / grades.Count();
             return average;
+        }
+
+        public override void AddGrade([Encrypted] double grade)
+        {
+            double inflation = grade + 1;
+            grades.Add(inflation);
         }
     }
 }

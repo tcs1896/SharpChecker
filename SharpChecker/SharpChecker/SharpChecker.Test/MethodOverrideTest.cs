@@ -141,7 +141,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 52, 21) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 52, 44) };
             VerifyDiag(test, diagLoc);
         }
 
