@@ -26,7 +26,7 @@ namespace SharpChecker
             context.RegisterCompilationStartAction(compilationContext =>
             {
                 // Perform any setup necessary for our analysis in the constructor
-                var analyzer = new ASTUtilities(Rule, compilationContext.Compilation.SyntaxTrees);
+                var analyzer = new ASTUtilities(Rule);
 
                 //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
                 //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 

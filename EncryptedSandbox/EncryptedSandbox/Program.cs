@@ -1,9 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using SharpChecker.attributes;
+using System;
 using System.Linq;
-using System.Reflection;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace EncryptedSandbox
 {
@@ -44,7 +41,7 @@ namespace EncryptedSandbox
         [Encrypted]
         public string Ciphertext { get; set; }
 
-        [NotEncrypted]
+
         public string RawText { get; set; }
 
         [Encrypted]
@@ -63,7 +60,7 @@ namespace EncryptedSandbox
             //of Ciphertext, so this should be accepted
             Ciphertext = Encrypt(plaintext);
             //We permit Encrypted values being assigned to unencrypted
-            RawText = Encrypt(plaintext);
+            RawText = Encrypt(plaintext); 
 
             //--Error Cases--//
             //This should cause the diagnostic to fire because the return type of the method

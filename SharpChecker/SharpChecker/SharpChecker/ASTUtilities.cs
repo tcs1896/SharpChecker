@@ -6,57 +6,45 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
+using SharpChecker.attributes;
 
 namespace SharpChecker
 {
     class ASTUtilities
     {
-        //Dictionary where we will store type annotations.  Initially, these are explicity defined with attributes.
-        //The attributes themselves are decorated with the [SharpChecker] attribute.  Eventually, they may be inferred
-        //based on context, data flow, and control flow.
+        //Dictionary where we will store type annotations.  Initially, these are explicitly declared with attributes.
+        //Eventually, they may be inferred based on context, data flow, and control flow.
         Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new Dictionary<SyntaxNode, List<List<string>>>();
-        //We cache the list of attributes which we are concerned with, so that we don't have to lookup the definition many times
+        //The list of attributes with which the analysis will be concerned
         List<string> SharpCheckerAttributes = new List<string>();
 
         //We may want to put these somewhere else in the future
         private DiagnosticDescriptor rule;
 
-        public ASTUtilities(DiagnosticDescriptor rule, IEnumerable<SyntaxTree> trees)
+        public ASTUtilities(DiagnosticDescriptor rule)
         {
             this.rule = rule;
-            //Search for attribute definitions which are decorated with [SharpChecker] 
-            //then include these attributes in our analysis
-            foreach (var tree in trees)
-            {
-                var classes = tree.GetRoot().DescendantNodes().OfType<ClassDeclarationSyntax>();
-                foreach (var clazz in classes)
-                {
-                    //If there are no attributes decorating this class then move on
-                    if(clazz.AttributeLists.Count() == 0) { continue; }
+            AddAttributesToUseInAnalysis();
+        }
 
-                    //Using the syntax of the class declaration look for both an AttributeUsage
-                    //attribute which makes the class an attribute declaration, as well as a SharpChecker
-                    //attribute which we are using to mark attributes we would like to analyze
-                    bool hasAttributeUsage = false;
-                    bool hasSharpChecker = false;
-                    foreach (var attrList in clazz.AttributeLists)
-                    {
-                        foreach (var attr in attrList.Attributes)
-                        {
-                            var attrClass = RemoveAttributeEnding(attr.Name.ToString());
-                            hasAttributeUsage |= (attrClass == "AttributeUsage");
-                            hasSharpChecker |= (attrClass == "SharpChecker");
-                        }
-                    }
+        /// <summary>
+        /// This class is called during the init phase of an analysis and should be used to
+        /// register attributes for analysis.  Within the method you should use
+        /// <sref>AddAttributeClassToAnalysis</sref> to register each attribute
+        /// </summary>
+        public virtual void AddAttributesToUseInAnalysis()
+        {
+            AddAttributeClassToAnalysis(nameof(EncryptedAttribute));
+        }
 
-                    //If this was defined as an attribute, and has the [SharpChecker] attribute
-                    if (hasAttributeUsage && hasSharpChecker)
-                    {
-                        var className = RemoveAttributeEnding(clazz.Identifier.Text);
-                        SharpCheckerAttributes.Add(className);
-                    }
-                }
-            }
+        /// <summary>
+        /// This helper method should be called to add attributes to the list
+        /// with which SharpChecker will concern itself.
+        /// </summary>
+        /// <param name="attr">The name of the attribute class</param>
+        public void AddAttributeClassToAnalysis(string attr)
+        {
+            SharpCheckerAttributes.Add(RemoveAttributeEnding(attr));
         }
 
         /// <summary>
@@ -72,7 +60,7 @@ namespace SharpChecker
         /// <summary>
         /// Serves as an entry point for the analysis.  This is the executed by the SyntaxNodeActions fired by Roslyn. 
         /// </summary>
-        /// <param name="context"></param>
+        /// <param name="context">The analysis context</param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context)
         {
             AnalyzeExpression(context, context.Node);
@@ -80,9 +68,9 @@ namespace SharpChecker
 
         /// <summary>
         /// Descend into the syntax tree as far as necessary to determine the associated attributes which are expected.
-        /// Called recursively when appropriate below as we decend into the tree.
+        /// Called recursively when appropriate below as we descend into the tree.
         /// </summary>
-        /// <param name="context"></param>
+        /// <param name="context">The analysis context</param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
             //Determine what type of sytax node we are dealing with
@@ -105,8 +93,8 @@ namespace SharpChecker
         /// but if the invocation occurs within the context of an argument list to another invocation
         /// then we will need to know the annotated type which is expected to result.
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="invocationExpr"></param>
+        /// <param name="context">The analysis context</param>
+        /// <param name="invocationExpr">A syntax node</param>
         private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
@@ -221,11 +209,10 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Accepts a collection of attributes and filters them down to those which were discovered
-        /// to have the [SharpChecker] attribute
+        /// Accepts a collection of attributes and filters them down to those which were registered for analysis
         /// </summary>
-        /// <param name="returnTypeAttrs"></param>
-        /// <returns></returns>
+        /// <param name="returnTypeAttrs">A collection of attributes</param>
+        /// <returns>The intersection of the attribute set which was registered and that provided as an argument</returns>
         private List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
         {
             var retAttrStrings = new List<String>();
@@ -275,9 +262,8 @@ namespace SharpChecker
         /// <summary>
         /// Get the annotated type associated with the LHS of an assignment (maybe called the receiver)
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="assignmentExpression"></param>
-        /// <returns></returns>
+        /// <param name="context">The analysis context</param>
+        /// <param name="assignmentExpression">A syntax node</param>
         private void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
         {
             // First check the variable to which we are assigning
@@ -311,9 +297,9 @@ namespace SharpChecker
         /// <summary>
         /// Get a list of attributes associated with a syntax node
         /// </summary>
-        /// <param name="context"></param>
-        /// <param name="synNode"></param>
-        /// <returns></returns>
+        /// <param name="context">The analysis context</param>
+        /// <param name="synNode">A syntax node</param>
+        /// <returns>A list of attributes associated with a syntax node</returns>
         public List<string> GetAttributes(SyntaxNodeAnalysisContext context, SyntaxNode synNode)
         {
             List<string> attrs = new List<string>();
@@ -332,26 +318,23 @@ namespace SharpChecker
 
         /// <summary>
         /// Now that we have collected all the type annotation information we walk over the
-        /// syntax tree and verify that they respect our subtyping relationships
+        /// syntax tree and verify that they respect our subtyping relationships. We use a 
+        /// CSharpSyntaxWalker which visits all the nodes of the tree, so that we can implement 
+        /// different methods to analyze different constructs, and only traverse the tree once 
+        /// while performing our validation.
         /// </summary>
-        /// <param name="context"></param>
+        /// <param name="context">The analysis context</param>
         public void VerifyTypeAnnotations(SemanticModelAnalysisContext context)
         {
-            //Here we should lookup any nodes which have attributes, and check to make sure
-            //they are abided by.  If not then we present a diagnostic.
-
-            //It may be most effecient to leverage a walker which visits all the nodes of the tree,
-            //so that we can implement different methods to analyze different constructs, and 
-            //only traverse the tree once while performing our validation
-
-            //At this point because we would never need to persist the information which we gain back out to the world
-            //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
-            //variable checked for null which occur in that block an annotate them as nonnull
-
             var walker = new SCBaseSyntaxWalker(rule, AnnotationDictionary, context, SharpCheckerAttributes);
             walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
-            //Leaving this around for now as a reminder of some false starts.  Need to include this
+            //A thought about expanding upon the current functionality:
+            //From this point forward we would never need to persist the information which we gain back out to the world so
+            //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
+            //variable checked for null which occur in that block an annotate them as nonnull
+
+            //Preserving the commented sections below for now as a reminder of some false starts.  Need to include this
             //in the final writeup along with suggested improvements to Roslyn
 
             //var newCompilation = context.Compilation.ReplaceSyntaxTree(tree, walker.GetTree());

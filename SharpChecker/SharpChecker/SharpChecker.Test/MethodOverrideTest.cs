@@ -55,20 +55,9 @@ namespace SharpChecker.Test
                     public abstract double GetGPA();
                 }
 
-                [SharpChecker]
                 [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)] 
                 class EncryptedAttribute : Attribute
                 {
-                }
-
-                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-                class SharpCheckerAttribute : Attribute
-                {
-                    //Attribute SubtypeOf;
-                    //public SharpCheckerAttribute(Attribute myvalue)
-                    //{
-                    //    this.SubtypeOf = myvalue;
-                    //}
                 }";
 
         /// <summary>
@@ -118,7 +107,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 59, 51) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 51) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -141,7 +130,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 52, 44) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 41, 44) };
             VerifyDiag(test, diagLoc);
         }
 

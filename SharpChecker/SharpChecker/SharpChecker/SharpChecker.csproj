@@ -35,10 +35,11 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ASTUtilities.cs" />
+    <Compile Include="attributes\Encrypted.cs" />
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="SCBaseSyntaxWalker.cs" />
-    <Compile Include="SharpCheckerAttribute.cs" />
+    <Compile Include="attributes\SharpCheckerAttribute.cs" />
     <Compile Include="SharpCheckerBaseAnalyzer.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">

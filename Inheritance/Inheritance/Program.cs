@@ -1,9 +1,6 @@
-﻿using SharpChecker;
-using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using SharpChecker.attributes;
 
 namespace Inheritance
 {
@@ -12,12 +9,6 @@ namespace Inheritance
         static void Main(string[] args)
         {
         }
-    }
-
-    [SharpChecker]
-    [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-    class EncryptedAttribute : Attribute
-    {
     }
 
     interface IStudent
@@ -56,7 +47,7 @@ namespace Inheritance
         }
     }
 
-    class Undergraduate : Student
+    class Undergraduate : Graduate
     {
         public override double GetGPA()
         {

@@ -80,20 +80,9 @@ namespace SharpChecker.Test
                     }
                 }
 
-                [SharpChecker]
                 [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)] 
                 class EncryptedAttribute : Attribute
                 {
-                }
-
-                [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
-                class SharpCheckerAttribute : Attribute
-                {
-                    //Attribute SubtypeOf;
-                    //public SharpCheckerAttribute(Attribute myvalue)
-                    //{
-                    //    this.SubtypeOf = myvalue;
-                    //}
                 }
             }";
 
