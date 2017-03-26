@@ -18,7 +18,7 @@ namespace SharpChecker.Test
         /// <returns></returns>
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new SharpCheckerBaseAnalyzer();
+            return new SharpCheckerDiagnosticAnalyzer();
         }
 
         public const string baseClass = @"using System;
@@ -143,7 +143,7 @@ namespace SharpChecker.Test
         {
             var expected = new DiagnosticResult
             {
-                Id = "SharpCheckerMethodParams",
+                Id = "SharpChecker",
                 Message = String.Format("Attribute application error {0}", "Encrypted"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = diagLoc
