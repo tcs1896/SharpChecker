@@ -1,4 +1,7 @@
-# You've added your first Readme file!
+# Masters Capstone Project - Type Annotation Analysis Using the .NET Compiler Platform
+# Student: Theodore Sill
+# Advisor: Professor Matthew Fluet
+
 A README.md file is intended to quickly orient readers to what your project can do.  New to Markdown? [Learn more](https://go.microsoft.com/fwlink/p/?LinkId=524306&clcid=0x409)
 
 ## Edit this README and commit your change to a topic branch
@@ -6,7 +9,7 @@ In Git, branches are cheap.  You should use them whenever you're making changes 
 
 Then make some changes to this README file.
 
-> Make some **edits** to _this_ blockquote
+> Make some **edits** to _this_ blockquote testing
 
 When you are done, click the dropdown arrow next to the save button - that will allow you to commit your changes to a new branch.
 
