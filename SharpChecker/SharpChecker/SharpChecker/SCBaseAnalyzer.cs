@@ -22,6 +22,11 @@ namespace SharpChecker
         internal const string Category = "Syntax";
         public static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
 
+        public virtual SCBaseAnalyzer AnalyzerFactory()
+        {
+            return this;
+        }
+
         public virtual ImmutableArray<DiagnosticDescriptor> GetRules()
         {
             return ImmutableArray.Create(Rule);

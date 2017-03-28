@@ -18,7 +18,13 @@ namespace SharpChecker
         //The list of attributes with which the analysis will be concerned
         public List<string> SharpCheckerAttributes = new List<string>();
 
-        private static SCBaseAnalyzer baseAnalyzer = new SCBaseAnalyzer();
+        private static SCBaseAnalyzer baseAnalyzer; //= new EncryptedAnalyzer().AnalyzerFactory();
+
+        static ASTUtilities()
+        {
+            var type = Type.GetType("SharpChecker.EncryptedAnalyzer");
+            baseAnalyzer = (SCBaseAnalyzer)Activator.CreateInstance(type);
+        }
 
         /// <summary>
         /// Prior to Roslyn firing actions associated with the expressions and statements we want to analyze
@@ -26,7 +32,6 @@ namespace SharpChecker
         /// </summary>
         public ASTUtilities()
         {
-            //var myAnalyzer = new SCBaseAnalyzer();
             var myAttributes = baseAnalyzer.GetAttributesToUseInAnalysis();
             foreach (var att in myAttributes)
             {
@@ -58,13 +63,11 @@ namespace SharpChecker
         /// <returns>The rules that we will enforce</returns>
         public static ImmutableArray<DiagnosticDescriptor> GetRules()
         {
-            //var myAnalyzer = new SCBaseAnalyzer();
             return baseAnalyzer.GetRules();
         }
 
         public static SyntaxKind[] GetSyntaxKinds()
         {
-            //var myAnalyzer = new SCBaseAnalyzer();
             return baseAnalyzer.GetSyntaxKinds();
         }
 
@@ -171,7 +174,7 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void VerifyTypeAnnotations(SemanticModelAnalysisContext context)
         {
-            var walker = new SCBaseSyntaxWalker(SCBaseAnalyzer.Rule, AnnotationDictionary, context, SharpCheckerAttributes);
+            var walker = new SCBaseSyntaxWalker(baseAnalyzer.GetRules().First(), AnnotationDictionary, context, SharpCheckerAttributes);
             walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
             //A thought about expanding upon the current functionality:

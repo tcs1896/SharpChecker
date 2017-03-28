@@ -143,7 +143,7 @@ namespace SharpChecker.Test
         {
             var expected = new DiagnosticResult
             {
-                Id = "SharpChecker",
+                Id = "EncryptionChecker",
                 Message = String.Format("Attribute application error {0}", "Encrypted"),
                 Severity = DiagnosticSeverity.Error,
                 Locations = diagLoc
