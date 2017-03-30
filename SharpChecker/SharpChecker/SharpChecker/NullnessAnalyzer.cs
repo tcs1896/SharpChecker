@@ -20,7 +20,7 @@ namespace SharpChecker
         public override Dictionary<string, DiagnosticDescriptor> GetRules()
         {
             var baseRules = base.GetRules();
-            baseRules.Add(nameof(MaybeNullAttribute).Replace("Attribute", ""), NullnessRule);
+            //baseRules.Add(nameof(MaybeNullAttribute).Replace("Attribute", ""), NullnessRule);
             baseRules.Add(nameof(NonNullAttribute).Replace("Attribute", ""), NullnessRule);
             return baseRules;
         }
@@ -28,7 +28,7 @@ namespace SharpChecker
         public override List<String> GetAttributesToUseInAnalysis()
         {
             var baseAttributes = base.GetAttributesToUseInAnalysis();
-            baseAttributes.Add(nameof(MaybeNullAttribute));
+            //baseAttributes.Add(nameof(MaybeNullAttribute));
             baseAttributes.Add(nameof(NonNullAttribute));
             return baseAttributes;
         }

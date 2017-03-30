@@ -22,7 +22,7 @@ namespace SharpChecker.Test
             return new SharpCheckerDiagnosticAnalyzer();
         }
 
-        public const string EncryptionProgStart = @"
+        public const string ProgStart = @"
             using System;
             using System.Collections.Generic;
             using System.Linq;
@@ -45,7 +45,7 @@ namespace SharpChecker.Test
 
         //We fill in and verify the body of the main method in the tests below
 
-        private const string EncryptionProgEnd = @"
+        private const string ProgEnd = @"
 
                     }
                 }
@@ -68,9 +68,11 @@ namespace SharpChecker.Test
             var body = @"                
 
                 //--Acceptable Cases--//
+                //This property has an attribute which indicates it may be null, so assigning
+                //null should not result in a diagnostic
                 MaybeNullProp = null;";
 
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var test = String.Concat(ProgStart, body, ProgEnd);
 
             VerifyCSharpDiagnostic(test);
         }
@@ -81,9 +83,10 @@ namespace SharpChecker.Test
             var body = @"                
 
                 //--Acceptable Cases--//
+                //Assigning a string literal should be acceptable regardless of the nullability
                 MaybeNullProp = ""literal"";";
 
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var test = String.Concat(ProgStart, body, ProgEnd);
 
             VerifyCSharpDiagnostic(test);
         }
@@ -94,9 +97,10 @@ namespace SharpChecker.Test
             var body = @"                
 
                 //--Acceptable Cases--//
+                //Assigning a string literal should be acceptable regardless of the nullability
                 NonNullProp = ""literal"";";
 
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var test = String.Concat(ProgStart, body, ProgEnd);
 
             VerifyCSharpDiagnostic(test);
         }
@@ -106,10 +110,11 @@ namespace SharpChecker.Test
         {
             var body = @"                
                 //--Error Cases--//
+                //Assigning null to a property which has the NonNull attribute should result in a diagnostic
                 NonNullProp = null;";
 
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 22, 31) };
+            var test = String.Concat(ProgStart, body, ProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 31) };
             VerifyDiag(test, diagLoc);
         }
 

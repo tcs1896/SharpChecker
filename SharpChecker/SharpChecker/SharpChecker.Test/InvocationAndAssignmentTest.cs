@@ -337,19 +337,21 @@ namespace SharpChecker.Test
             VerifyCSharpDiagnostic(test);
         }
 
-        //[TestMethod]
+        [TestMethod]
         public void InvocationArgumentDoesntRespectParamAttribute_SubExpressionArg()
         {
+            //When using variable 'plaintext' instead of string literals -
             //This causes an error when attempting to retreive the symbol associated with the method
             // ==> CandidateReason: OverloadResolutionFailure
             //I guess it has difficulting determing that the result of concatenating plaintext and plaintext is a string?
+            //I ran into something similar when plaintext was not defined.  Could this be the case here?
             var body = @"                
                 //--Error Cases--//
                 //This should generate an error because the concatenated string doesn't have the [Encrypted] attribute
-                SendOverInternet(plaintext + plaintext);";
+                SendOverInternet(""beginning"" + ""ending"");";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] {
-                new DiagnosticResultLocation("Test0.cs", 47, 34)
+                new DiagnosticResultLocation("Test0.cs", 42, 34)
             };
             VerifyDiag(test, diagLoc);
         }

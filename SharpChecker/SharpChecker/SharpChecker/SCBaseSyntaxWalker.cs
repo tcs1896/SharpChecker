@@ -185,7 +185,7 @@ namespace SharpChecker
 
         /// <summary>
         /// If the variable to which we are assigning a value has an annotation, then we need to verify that the
-        /// expression to which it is assigned with yeild a value with the appropriate annoation
+        /// expression to which it is assigned with yeild a value with the appropriate annotation
         /// </summary>
         private void VerifyAssignmentExpr(AssignmentExpressionSyntax assignmentExpression)
         {
