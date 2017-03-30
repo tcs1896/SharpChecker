@@ -36,9 +36,11 @@
   <ItemGroup>
     <Compile Include="ASTUtilities.cs" />
     <Compile Include="attributes\EncryptedAttribute.cs" />
+    <Compile Include="attributes\NullnessAttributes.cs" />
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="EncryptedAnalyzer.cs" />
     <Compile Include="Enums.cs" />
+    <Compile Include="NullnessAnalyzer.cs" />
     <Compile Include="SCBaseAnalyzer.cs" />
     <Compile Include="SCBaseSyntaxWalker.cs" />
     <Compile Include="attributes\SharpCheckerAttribute.cs" />

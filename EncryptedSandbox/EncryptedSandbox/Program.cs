@@ -48,8 +48,14 @@ namespace EncryptedSandbox
         [Encrypted]
         public int Result { get; set; }
 
+        [NonNull]
+        public string Id { get; set; }
+
         void SendText()
         {
+            Id = null;
+            Id = "Unique Identifier 1234";
+
             string plaintext = "Anyone can read this!";
 
             ////////////////////////////////////////////////////

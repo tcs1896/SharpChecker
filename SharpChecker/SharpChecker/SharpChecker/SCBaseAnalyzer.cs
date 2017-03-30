@@ -109,7 +109,7 @@ namespace SharpChecker
                 //involving "span" so that we could distinguish uses at different locations in the source text.
                 if (!astUtil.AnnotationDictionary.ContainsKey(identifierNameExpr))
                 {
-                    astUtil.AnnotationDictionary.Add(identifierNameExpr, new List<List<String>>() { retAttrStrings });
+                    astUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { retAttrStrings });
                 }
             }
 
@@ -188,7 +188,7 @@ namespace SharpChecker
             if (hasAttrs)
             {
                 //Add the expected attributes of the arguments to our collection
-                astUtil.AnnotationDictionary.Add(argumentList, attrListParams);
+                astUtil.AnnotationDictionary.TryAdd(argumentList, attrListParams);
             }
         }
 
@@ -208,7 +208,7 @@ namespace SharpChecker
                 if (attrs.Count() > 0)
                 {
                     //Add the list of expected attributes to the dictionary
-                    astUtil.AnnotationDictionary.Add(identifierName, new List<List<string>>() { attrs });
+                    astUtil.AnnotationDictionary.TryAdd(identifierName, new List<List<string>>() { attrs });
                 }
             }
             else
@@ -221,7 +221,7 @@ namespace SharpChecker
                     if (memAttrs.Count() > 0)
                     {
                         //Add the list of expected attributes to the dictionary
-                        astUtil.AnnotationDictionary.Add(memAccess, new List<List<string>>() { memAttrs });
+                        astUtil.AnnotationDictionary.TryAdd(memAccess, new List<List<string>>() { memAttrs });
                     }
                 }
             }

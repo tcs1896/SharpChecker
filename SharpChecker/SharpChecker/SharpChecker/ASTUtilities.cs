@@ -7,6 +7,7 @@ using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
 using SharpChecker.attributes;
+using System.Collections.Concurrent;
 
 namespace SharpChecker
 {
@@ -14,12 +15,12 @@ namespace SharpChecker
     {
         //Dictionary where we will store type annotations.  Initially, these are explicitly declared with attributes.
         //Eventually, they may be inferred based on context, data flow, and control flow.
-        public Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new Dictionary<SyntaxNode, List<List<string>>>();
+        public ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new ConcurrentDictionary<SyntaxNode, List<List<string>>>();
         //The list of attributes with which the analysis will be concerned
         public List<string> SharpCheckerAttributes = new List<string>();
         //This has to be manually changed to an instance of the analyzer which is specific to that which we 
         //would like to execute.
-        private static SCBaseAnalyzer baseAnalyzer = new EncryptedAnalyzer();
+        private static SCBaseAnalyzer baseAnalyzer = new NullnessAnalyzer();
 
         private static Dictionary<string, DiagnosticDescriptor> rulesDict;
 
@@ -146,7 +147,7 @@ namespace SharpChecker
                 //Not sure if this acceptable.  We may need to distinguish between separate instances
                 else
                 {
-                    AnnotationDictionary.Add(sn, new List<List<string>>() { argAttrStrings });
+                    AnnotationDictionary.TryAdd(sn, new List<List<string>>() { argAttrStrings });
                 }
             }
         }

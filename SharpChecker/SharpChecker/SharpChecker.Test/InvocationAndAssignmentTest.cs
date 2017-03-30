@@ -126,24 +126,7 @@ namespace SharpChecker.Test
             VerifyCSharpDiagnostic(test);
         }
 
-        [TestMethod]
-        public void NoDiagnosticsResult_AssignmentWithMatchingAttribute()
-        {
-            //This unit test is failing when all tests are run, but not when it is executed in isolation
-            var body = @"                
-                ////////////////////////////////////////////////////
-                //Expression Statement - Assignment Statements
-                ///////////////////////////////////////////////////
 
-                //--Acceptable Cases--//
-                //The return type of Encrypt is annotated, and will match the annotation 
-                //of Ciphertext, so this should be accepted
-                Ciphertext = Encrypt(plaintext);";
-
-            var test = $"{EncryptionProgStart}{body}{EncryptionProgEnd}";
-
-            VerifyCSharpDiagnostic(test);
-        }
 
         [TestMethod]
         public void NoDiagnosticsResult_AssignmentToUnattributed()
@@ -333,6 +316,25 @@ namespace SharpChecker.Test
                 new DiagnosticResultLocation("Test0.cs", 42, 34)
             };
             VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_AssignmentWithMatchingAttribute()
+        {
+            //This unit test is failing when all tests are run, but not when it is executed in isolation
+            var body = @"                
+                ////////////////////////////////////////////////////
+                //Expression Statement - Assignment Statements
+                ///////////////////////////////////////////////////
+
+                //--Acceptable Cases--//
+                //The return type of Encrypt is annotated, and will match the annotation 
+                //of Ciphertext, so this should be accepted
+                Ciphertext = Encrypt(plaintext);";
+
+            var test = $"{EncryptionProgStart}{body}{EncryptionProgEnd}";
+
+            VerifyCSharpDiagnostic(test);
         }
 
         //[TestMethod]

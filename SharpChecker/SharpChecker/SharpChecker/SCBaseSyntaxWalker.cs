@@ -3,6 +3,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
@@ -13,11 +14,11 @@ namespace SharpChecker
     class SCBaseSyntaxWalker : CSharpSyntaxWalker
     {
         private Dictionary<string, DiagnosticDescriptor> rulesDict;
-        private Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
+        private ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         private SemanticModelAnalysisContext context;
         private List<string> sharpCheckerAttributes;
 
-        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
+        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
         {
             this.rulesDict = rulesDict;
             this.AnnotationDictionary = annotationDictionary;
