@@ -12,14 +12,14 @@ namespace SharpChecker
 {
     class SCBaseSyntaxWalker : CSharpSyntaxWalker
     {
-        private DiagnosticDescriptor rule;
+        private Dictionary<string, DiagnosticDescriptor> rulesDict;
         private Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         private SemanticModelAnalysisContext context;
         private List<string> sharpCheckerAttributes;
 
-        public SCBaseSyntaxWalker(DiagnosticDescriptor rule, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
+        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, Dictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
         {
-            this.rule = rule;
+            this.rulesDict = rulesDict;
             this.AnnotationDictionary = annotationDictionary;
             this.context = context;
             this.sharpCheckerAttributes = SharpCheckerAttributes;
@@ -90,11 +90,7 @@ namespace SharpChecker
                     }
                 }
 
-                if (returnTypeAttrStrings.Count() > 0)
-                {
-                    var diagnostic = Diagnostic.Create(rule, methodDecl.Identifier.GetLocation(), string.Join(",", returnTypeAttrStrings));
-                    context.ReportDiagnostic(diagnostic);
-                }
+                ReportDiagsForEach(methodDecl.Identifier.GetLocation(), returnTypeAttrStrings);
 
                 //Now check to see if the attributes of the parameters agree with the overriden method
                 var derivedMethParams = methodDecl.ParameterList.Parameters;
@@ -139,13 +135,26 @@ namespace SharpChecker
                             }
                         }
 
-                        if (stringAttrs.Count() > 0)
-                        {
-                            var diagnostic = Diagnostic.Create(rule, derivedMethParams[i].GetLocation(), string.Join(",", stringAttrs));
-                            context.ReportDiagnostic(diagnostic);
-                        }
+                        ReportDiagsForEach(derivedMethParams[i].GetLocation(), stringAttrs);
                     }
                 }
+            }
+        }
+
+        /// <summary>
+        /// Report one diagnostic foreach attribute which is present when it should have 
+        /// been paired off with a matching occurance and removed
+        /// </summary>
+        /// <param name="location"></param>
+        /// <param name="errorAttributes"></param>
+        private void ReportDiagsForEach(Location location, List<string> errorAttributes)
+        {
+            if(errorAttributes == null || errorAttributes.Count() == 0) { return; }
+
+            foreach (var errorAttr in errorAttributes)
+            {
+                var diagnostic = Diagnostic.Create(rulesDict[errorAttr], location, errorAttr);
+                context.ReportDiagnostic(diagnostic);
             }
         }
 
@@ -227,11 +236,7 @@ namespace SharpChecker
             }
 
             //If we haven't found a match then present a diagnotic error
-            if (expectedAttributes.Count() > 0)
-            {
-                var diagnostic = Diagnostic.Create(rule, assignmentExpression.Right.GetLocation(), string.Join(",", expectedAttributes));
-                context.ReportDiagnostic(diagnostic);
-            }
+            ReportDiagsForEach(assignmentExpression.Right.GetLocation(), expectedAttributes);
         }
 
 
@@ -309,11 +314,7 @@ namespace SharpChecker
                 }
 
                 //If we haven't found a match then present a diagnotic error
-                if (expectedAttr.Count() > 0)
-                {
-                    var diagnostic = Diagnostic.Create(rule, argI.GetLocation(), string.Join(",", expectedAttr));
-                    context.ReportDiagnostic(diagnostic);
-                }
+                ReportDiagsForEach(argI.GetLocation(), expectedAttr);
             }
             else if (node is ConditionalExpressionSyntax conditional)
             {
@@ -326,8 +327,7 @@ namespace SharpChecker
                 //We are probably dealing with a literal - which cannot have the associated attribute
                 if (node is LiteralExpressionSyntax argLit)
                 {
-                    var diagnostic = Diagnostic.Create(rule, argLit.GetLocation(), string.Join(",", expectedAttr));
-                    context.ReportDiagnostic(diagnostic);
+                    ReportDiagsForEach(argLit.GetLocation(), expectedAttr);
                 }
                 else
                 {
@@ -367,11 +367,7 @@ namespace SharpChecker
                         }
 
                         //If we haven't found a match then present a diagnotic error
-                        if (expectedAttr.Count() > 0)
-                        {
-                            var diagnostic = Diagnostic.Create(rule, node.GetLocation(), string.Join(",", expectedAttr));
-                            context.ReportDiagnostic(diagnostic);
-                        }
+                        ReportDiagsForEach(node.GetLocation(), expectedAttr);
                     }
                     else //We may be dealing with a field like String.Empty
                     {
@@ -390,11 +386,7 @@ namespace SharpChecker
                         }
 
                         //If we haven't found a match then present a diagnotic error
-                        if (expectedAttr.Count() > 0)
-                        {
-                            var diagnostic = Diagnostic.Create(rule, node.GetLocation(), string.Join(",", expectedAttr));
-                            context.ReportDiagnostic(diagnostic);
-                        }
+                        ReportDiagsForEach(node.GetLocation(), expectedAttr);
 
                         //var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
                         //if (fieldSymbol != null)

@@ -17,18 +17,21 @@ namespace SharpChecker
         public Dictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new Dictionary<SyntaxNode, List<List<string>>>();
         //The list of attributes with which the analysis will be concerned
         public List<string> SharpCheckerAttributes = new List<string>();
+        //This has to be manually changed to an instance of the analyzer which is specific to that which we 
+        //would like to execute.
+        private static SCBaseAnalyzer baseAnalyzer = new EncryptedAnalyzer();
 
-        private static SCBaseAnalyzer baseAnalyzer; //= new EncryptedAnalyzer().AnalyzerFactory();
+        private static Dictionary<string, DiagnosticDescriptor> rulesDict;
 
-        static ASTUtilities()
-        {
-            var type = Type.GetType("SharpChecker.EncryptedAnalyzer");
-            baseAnalyzer = (SCBaseAnalyzer)Activator.CreateInstance(type);
-        }
+        //static ASTUtilities()
+        //{
+        //    //var type = Type.GetType("SharpChecker.EncryptedAnalyzer");
+        //    //baseAnalyzer = (SCBaseAnalyzer)Activator.CreateInstance(type);
+        //}
 
         /// <summary>
         /// Prior to Roslyn firing actions associated with the expressions and statements we want to analyze
-        /// we load the list of attributes which with the analysis will be concerned.
+        /// we load the list of attributes with which the analysis will be concerned.
         /// </summary>
         public ASTUtilities()
         {
@@ -55,7 +58,7 @@ namespace SharpChecker
 
         /// <summary>
         /// Returns a collection of diagnostic descriptors to the DiagnosticAnalyzer which drives the analysis.
-        /// We need some mechamism for additional type systems in plug into this and add to the list  
+        /// We need some mechanism for additional type systems in plug into this and add to the list  
         /// of supported diagnostics.  We could instantiate an object of another class which has a method to return these.
         /// Type system creators could then override that method to add their own diagnostics to the list before
         /// invoking the base functionality, so that the whole accumulated list is returned here.
@@ -63,9 +66,15 @@ namespace SharpChecker
         /// <returns>The rules that we will enforce</returns>
         public static ImmutableArray<DiagnosticDescriptor> GetRules()
         {
-            return baseAnalyzer.GetRules();
+            rulesDict = baseAnalyzer.GetRules();
+            var ruleValues = rulesDict.Values.ToArray();
+            return ImmutableArray.Create(ruleValues);
         }
 
+        /// <summary>
+        /// Get the syntax kinds which we would like to visit to collect attributes
+        /// </summary>
+        /// <returns>A collection of SyntaxKinds</returns>
         public static SyntaxKind[] GetSyntaxKinds()
         {
             return baseAnalyzer.GetSyntaxKinds();
@@ -174,7 +183,7 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void VerifyTypeAnnotations(SemanticModelAnalysisContext context)
         {
-            var walker = new SCBaseSyntaxWalker(baseAnalyzer.GetRules().First(), AnnotationDictionary, context, SharpCheckerAttributes);
+            var walker = new SCBaseSyntaxWalker(rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);
             walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
             //A thought about expanding upon the current functionality:

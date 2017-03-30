@@ -35,7 +35,7 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ASTUtilities.cs" />
-    <Compile Include="attributes\Encrypted.cs" />
+    <Compile Include="attributes\EncryptedAttribute.cs" />
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="EncryptedAnalyzer.cs" />
     <Compile Include="Enums.cs" />

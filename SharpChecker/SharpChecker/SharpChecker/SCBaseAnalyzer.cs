@@ -15,21 +15,20 @@ namespace SharpChecker
     class SCBaseAnalyzer
     {
         //This is the default diagnostic
-        public const string DiagnosticId = "SharpChecker";
-        internal const string Title = "Error in attribute applications";
-        internal const string MessageFormat = "Attribute application error {0}";
-        internal const string Description = "There is a mismatch between the effective attribute and the one expected";
-        internal const string Category = "Syntax";
+        private const string DiagnosticId = "SharpChecker";
+        private const string Title = "Error in attribute applications";
+        private const string MessageFormat = "Attribute application error {0}";
+        private const string Description = "There is a mismatch between the effective attribute and the one expected";
+        private const string Category = "Syntax";
         public static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
-
-        public virtual SCBaseAnalyzer AnalyzerFactory()
+        
+        public virtual Dictionary<string, DiagnosticDescriptor> GetRules()
         {
-            return this;
-        }
-
-        public virtual ImmutableArray<DiagnosticDescriptor> GetRules()
-        {
-            return ImmutableArray.Create(Rule);
+            var dict = new Dictionary<string, DiagnosticDescriptor>
+            {
+                { nameof(SharpCheckerAttribute).Replace("Attribute", ""), Rule }
+            };
+            return dict;
         }
 
         public virtual SyntaxKind[] GetSyntaxKinds()
@@ -47,7 +46,7 @@ namespace SharpChecker
         /// </summary>
         public virtual List<String> GetAttributesToUseInAnalysis()
         {
-            return new List<String>() { nameof(EncryptedAttribute) };
+            return new List<String>() { nameof(SharpCheckerAttribute) };
         }
 
 

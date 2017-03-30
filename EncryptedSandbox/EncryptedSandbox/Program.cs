@@ -22,9 +22,11 @@ namespace EncryptedSandbox
         }
 
         // Only send encrypted data!
-        public void SendOverInternet([Encrypted] String msg)
+        public int SendOverInternet([Encrypted] String msg)
         {
             // Send the data over an insecure medium
+            // Return the time of the transmission
+            return 15;
         }
 
         public string RemoveSpecialChars(string original, int charCode)
@@ -40,8 +42,7 @@ namespace EncryptedSandbox
 
         [Encrypted]
         public string Ciphertext { get; set; }
-
-
+        [SharpChecker]
         public string RawText { get; set; }
 
         [Encrypted]
@@ -77,9 +78,14 @@ namespace EncryptedSandbox
 
             //Random samples
             int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
-            var quarterback = teamNumbers.Select(num => num < 20).FirstOrDefault();
+            var quarterback = teamNumbers.Select(num => num < SendOverInternet(RawText)).FirstOrDefault();
             int myInt = 2 + 2;
             new Object();
+
+            while(myInt < SendOverInternet(RawText))
+            {
+                myInt++;
+            }
 
             ////////////////////////////////////////////////////
             //Expression Statement - Invocation Expressions
