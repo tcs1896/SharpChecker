@@ -21,7 +21,9 @@ namespace SharpChecker
         private const string Description = "There is a mismatch between the effective attribute and the one expected";
         private const string Category = "Syntax";
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
-        
+
+        public ASTUtilities ASTUtil { get; set; }
+
         public virtual Dictionary<string, DiagnosticDescriptor> GetRules()
         {
             var dict = new Dictionary<string, DiagnosticDescriptor>
@@ -55,18 +57,18 @@ namespace SharpChecker
         /// Called recursively when appropriate below as we descend into the tree.
         /// </summary>
         /// <param name="context">The analysis context</param>
-        public void AnalyzeExpression(SyntaxNodeAnalysisContext context, SyntaxNode node, ASTUtilities astUtil)
+        public void AnalyzeExpression(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
             //Determine what type of sytax node we are dealing with
             switch (node.Kind())
             {
                 case SyntaxKind.InvocationExpression:
                     var invocationExpr = node as InvocationExpressionSyntax;
-                    AnalyzeInvocationExpr(context, invocationExpr, astUtil);
+                    AnalyzeInvocationExpr(context, invocationExpr);
                     break;
                 case SyntaxKind.SimpleAssignmentExpression:
                     var assignmentExpression = node as AssignmentExpressionSyntax;
-                    AnalyzeAssignmentExpression(context, assignmentExpression, astUtil);
+                    AnalyzeAssignmentExpression(context, assignmentExpression);
                     break;
             }
         }
@@ -79,7 +81,7 @@ namespace SharpChecker
         /// </summary>
         /// <param name="context">The analysis context</param>
         /// <param name="invocationExpr">A syntax node</param>
-        private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr, ASTUtilities astUtil)
+        private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
             if (identifierNameExpr == null)
@@ -102,14 +104,14 @@ namespace SharpChecker
             var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
             if (returnTypeAttrs.Count() > 0)
             {
-                var retAttrStrings = astUtil.GetSharpCheckerAttributeStrings(returnTypeAttrs);
+                var retAttrStrings = ASTUtil.GetSharpCheckerAttributeStrings(returnTypeAttrs);
                 //An exception was generated here because we were attempting to add the same name twice.
                 //This leads me to believe that the same identifier occurring in different locations in
                 //the source text may not be distinguished.  We could perhaps introduce a composite key
                 //involving "span" so that we could distinguish uses at different locations in the source text.
-                if (!astUtil.AnnotationDictionary.ContainsKey(identifierNameExpr))
+                if (!ASTUtil.AnnotationDictionary.ContainsKey(identifierNameExpr))
                 {
-                    astUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { retAttrStrings });
+                    ASTUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { retAttrStrings });
                 }
             }
 
@@ -122,7 +124,7 @@ namespace SharpChecker
                 if (argumentList.Arguments[i].Expression is IdentifierNameSyntax argI)
                 {
                     var symbol = context.SemanticModel.GetSymbolInfo(argI).Symbol;
-                    astUtil.AddSymbolAttributes(argI, symbol);
+                    ASTUtil.AddSymbolAttributes(argI, symbol);
                 }
                 else
                 {
@@ -132,24 +134,24 @@ namespace SharpChecker
                     //analyze the right and left then combine the result - like type checking
                     if (argumentList.Arguments[i].Expression is InvocationExpressionSyntax argInvExpr)
                     {
-                        AnalyzeInvocationExpr(context, argInvExpr, astUtil);
+                        AnalyzeInvocationExpr(context, argInvExpr);
                     }
                     else if (argumentList.Arguments[i].Expression is ConditionalExpressionSyntax conditional)
                     {
                         //We are dealing with a ternary operator, and need to know the annotated type of each branch
-                        AnalyzeExpression(context, conditional.WhenTrue, astUtil);
-                        AnalyzeExpression(context, conditional.WhenFalse, astUtil);
+                        AnalyzeExpression(context, conditional.WhenTrue);
+                        AnalyzeExpression(context, conditional.WhenFalse);
                     }
                     else
                     {
                         if (context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol is IFieldSymbol fieldSymbol)
                         {
-                            astUtil.AddSymbolAttributes(argumentList.Arguments[i].Expression, fieldSymbol);
+                            ASTUtil.AddSymbolAttributes(argumentList.Arguments[i].Expression, fieldSymbol);
                         }
                         else
                         {
                             var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
-                            astUtil.AddSymbolAttributes(argumentList.Arguments[i].Expression, propertySymbol);
+                            ASTUtil.AddSymbolAttributes(argumentList.Arguments[i].Expression, propertySymbol);
                         }
                     }
                 }
@@ -172,7 +174,7 @@ namespace SharpChecker
                 var param = paramSymbols[i];
                 //Get the attributes associated with this parameter
                 var attributes = param.GetAttributes();
-                var attributeStrings = astUtil.GetSharpCheckerAttributeStrings(attributes);
+                var attributeStrings = ASTUtil.GetSharpCheckerAttributeStrings(attributes);
 
                 for (int j = 0; j < attributeStrings.Count(); j++)
                 {
@@ -188,7 +190,7 @@ namespace SharpChecker
             if (hasAttrs)
             {
                 //Add the expected attributes of the arguments to our collection
-                astUtil.AnnotationDictionary.TryAdd(argumentList, attrListParams);
+                ASTUtil.AnnotationDictionary.TryAdd(argumentList, attrListParams);
             }
         }
 
@@ -197,31 +199,31 @@ namespace SharpChecker
         /// </summary>
         /// <param name="context">The analysis context</param>
         /// <param name="assignmentExpression">A syntax node</param>
-        public void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression, ASTUtilities astUtil)
+        public void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
         {
             // First check the variable to which we are assigning
             if (assignmentExpression.Left is IdentifierNameSyntax identifierName)
             {
-                List<string> attrs = astUtil.GetAttributes(context, identifierName);
+                List<string> attrs = ASTUtil.GetAttributes(context, identifierName);
 
                 //If we didn't find any annotations then we return the appropriate enum value indicating as much
                 if (attrs.Count() > 0)
                 {
                     //Add the list of expected attributes to the dictionary
-                    astUtil.AnnotationDictionary.TryAdd(identifierName, new List<List<string>>() { attrs });
+                    ASTUtil.AnnotationDictionary.TryAdd(identifierName, new List<List<string>>() { attrs });
                 }
             }
             else
             {
                 if (assignmentExpression.Left is MemberAccessExpressionSyntax memAccess)
                 {
-                    List<string> memAttrs = astUtil.GetAttributes(context, memAccess);
+                    List<string> memAttrs = ASTUtil.GetAttributes(context, memAccess);
 
                     //If we didn't find any annotations then we return the appropriate enum value indicating as much
                     if (memAttrs.Count() > 0)
                     {
                         //Add the list of expected attributes to the dictionary
-                        astUtil.AnnotationDictionary.TryAdd(memAccess, new List<List<string>>() { memAttrs });
+                        ASTUtil.AnnotationDictionary.TryAdd(memAccess, new List<List<string>>() { memAttrs });
                     }
                 }
             }

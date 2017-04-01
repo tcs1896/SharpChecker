@@ -39,6 +39,7 @@ namespace SharpChecker
                 var analyzer = (SCBaseAnalyzer)Activator.CreateInstance(type);
                 if(analyzer == null) { continue; }
                 //If we arrive here we have an analyzer instance
+                analyzer.ASTUtil = this;
                 analyzers.Add(analyzer);
             }
 
@@ -146,8 +147,7 @@ namespace SharpChecker
         {
             foreach (var analyzer in analyzers)
             {
-                //TODO: Remove 'this' argument, allowing each analyzer to maintain its own list of attributes
-                analyzer.AnalyzeExpression(context, context.Node, this);
+                analyzer.AnalyzeExpression(context, context.Node);
             }
         }
 

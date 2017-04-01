@@ -67,7 +67,7 @@ namespace EncryptedSandbox
             //of Ciphertext, so this should be accepted
             Ciphertext = Encrypt(plaintext);
             //We permit Encrypted values being assigned to unencrypted
-            RawText = Encrypt(plaintext); 
+            RawText = Encrypt(plaintext);
 
             //--Error Cases--//
             //This should cause the diagnostic to fire because the return type of the method
