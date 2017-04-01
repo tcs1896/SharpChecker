@@ -16,20 +16,20 @@ namespace SharpChecker
         private const string MessageFormat = "Attribute application error {0}";
         private const string Description = "There is a mismatch between the effective attribute and the one expected";
         private const string Category = "Syntax";
-        public static DiagnosticDescriptor EncryptionRule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
+        private static DiagnosticDescriptor EncryptionRule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
 
         public override Dictionary<string, DiagnosticDescriptor> GetRules()
         {
-            var baseRules = base.GetRules();
-            baseRules.Add(nameof(EncryptedAttribute).Replace("Attribute", ""), EncryptionRule);
-            return baseRules;
+            var dict = new Dictionary<string, DiagnosticDescriptor>
+            {
+                { nameof(EncryptedAttribute).Replace("Attribute", ""), EncryptionRule }
+            };
+            return dict;
         }
 
         public override List<String> GetAttributesToUseInAnalysis()
         {
-            var baseAttributes = base.GetAttributesToUseInAnalysis();
-            baseAttributes.Add(nameof(EncryptedAttribute));
-            return baseAttributes;
+            return new List<String>() { nameof(EncryptedAttribute) };
         }
 
     }

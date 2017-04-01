@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.CodeAnalysis.Text;
+using SharpChecker.Test;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
@@ -57,7 +58,10 @@ namespace TestHelper
             var diagnostics = new List<Diagnostic>();
             foreach (var project in projects)
             {
-                var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(ImmutableArray.Create(analyzer));
+                var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(
+                        ImmutableArray.Create(analyzer),
+                        new AnalyzerOptions(ImmutableArray.Create<AdditionalText>(new AnalyzerAdditionalFile("..\\..\\checkers.xml")))
+                    );
                 var diags = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().Result;
                 foreach (var diag in diags)
                 {

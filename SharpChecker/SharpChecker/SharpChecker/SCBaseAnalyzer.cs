@@ -20,7 +20,7 @@ namespace SharpChecker
         private const string MessageFormat = "Attribute application error {0}";
         private const string Description = "There is a mismatch between the effective attribute and the one expected";
         private const string Category = "Syntax";
-        public static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
+        private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
         
         public virtual Dictionary<string, DiagnosticDescriptor> GetRules()
         {

@@ -18,28 +18,48 @@ namespace SharpChecker
         public ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new ConcurrentDictionary<SyntaxNode, List<List<string>>>();
         //The list of attributes with which the analysis will be concerned
         public List<string> SharpCheckerAttributes = new List<string>();
-        //This has to be manually changed to an instance of the analyzer which is specific to that which we 
-        //would like to execute.
-        private static SCBaseAnalyzer baseAnalyzer = new NullnessAnalyzer();
-
-        private static Dictionary<string, DiagnosticDescriptor> rulesDict;
-
-        //static ASTUtilities()
-        //{
-        //    //var type = Type.GetType("SharpChecker.EncryptedAnalyzer");
-        //    //baseAnalyzer = (SCBaseAnalyzer)Activator.CreateInstance(type);
-        //}
+        //The list of analyzers which were specified in the checkers.xml file in the target project
+        private List<SCBaseAnalyzer> analyzers = new List<SCBaseAnalyzer>();
+        //A dictionary mapping the attribute to the associated rule.  Used in the walker class to register diagnostics.
+        private static Dictionary<string, DiagnosticDescriptor> rulesDict = new Dictionary<string, DiagnosticDescriptor>();
 
         /// <summary>
         /// Prior to Roslyn firing actions associated with the expressions and statements we want to analyze
         /// we load the list of attributes with which the analysis will be concerned.
         /// </summary>
-        public ASTUtilities()
+        public ASTUtilities(List<string> checkers)
         {
-            var myAttributes = baseAnalyzer.GetAttributesToUseInAnalysis();
-            foreach (var att in myAttributes)
+            //Dynamically load the analyzers associated with the checkers
+            foreach (var checker in checkers)
             {
-                AddAttributeClassToAnalysis(att);
+                //For now we assume that the name of the analyzer is the string provided + Analyzer
+                var analyzerClass = $"SharpChecker.{checker}Analyzer";
+                var type = Type.GetType(analyzerClass);
+                if(type == null) { continue; }
+                var analyzer = (SCBaseAnalyzer)Activator.CreateInstance(type);
+                if(analyzer == null) { continue; }
+                //If we arrive here we have an analyzer instance
+                analyzers.Add(analyzer);
+            }
+
+            //Now that we have instantiated all the analyzers interogate them to learn the associated attributes
+            AddAttributesForAllAnalyzers();
+        }
+
+        /// <summary>
+        /// Collect all of the attributes associated with the analyzer classes
+        /// </summary>
+        public void AddAttributesForAllAnalyzers()
+        {
+            if(analyzers == null && analyzers.Count == 0) { return; }
+
+            foreach (var analyzer in analyzers)
+            {
+                var attributes = analyzer.GetAttributesToUseInAnalysis();
+                foreach (var attr in attributes)
+                {
+                    AddAttributeClassToAnalysis(attr);
+                }
             }
         }
 
@@ -67,18 +87,45 @@ namespace SharpChecker
         /// <returns>The rules that we will enforce</returns>
         public static ImmutableArray<DiagnosticDescriptor> GetRules()
         {
-            rulesDict = baseAnalyzer.GetRules();
-            var ruleValues = rulesDict.Values.ToArray();
-            return ImmutableArray.Create(ruleValues);
+            List<DiagnosticDescriptor> descriptors = new List<DiagnosticDescriptor>();
+            //If you add a new analyzer class, make sure to add it to this list.  We can't discover these classes using the
+            //AdditionalFiles mechanism because we don't have the compilation context when assigning the SupportedDiagnostics
+            //property of our DiagnosticAnalyzer instance
+            var analyzerClasses = new SCBaseAnalyzer[] { new SCBaseAnalyzer(), new EncryptedAnalyzer(), new NullnessAnalyzer() };
+            foreach (var anClass in analyzerClasses)
+            {
+                var rules = anClass.GetRules();
+                
+                foreach (var diag in rules)
+                {
+                    rulesDict[diag.Key] = diag.Value;
+                    descriptors.Add(diag.Value);
+                }
+            }
+
+            return ImmutableArray.Create(descriptors.ToArray());
         }
 
         /// <summary>
         /// Get the syntax kinds which we would like to visit to collect attributes
         /// </summary>
         /// <returns>A collection of SyntaxKinds</returns>
-        public static SyntaxKind[] GetSyntaxKinds()
+        public SyntaxKind[] GetSyntaxKinds()
         {
-            return baseAnalyzer.GetSyntaxKinds();
+            List<SyntaxKind> kindList = new List<SyntaxKind>();
+            foreach (var analyzer in analyzers)
+            {
+                var analyzerKinds = analyzer.GetSyntaxKinds();
+                foreach (var aKind in analyzerKinds)
+                {
+                    if(!kindList.Contains(aKind))
+                    {
+                        kindList.Add(aKind);
+                    }
+                }
+            }
+
+            return kindList.ToArray();
         }
 
         /// <summary>
@@ -97,7 +144,11 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context)
         {
-            baseAnalyzer.AnalyzeExpression(context, context.Node, this);
+            foreach (var analyzer in analyzers)
+            {
+                //TODO: Remove 'this' argument, allowing each analyzer to maintain its own list of attributes
+                analyzer.AnalyzeExpression(context, context.Node, this);
+            }
         }
 
 
@@ -111,7 +162,7 @@ namespace SharpChecker
             var retAttrStrings = new List<String>();
             foreach(var attData in returnTypeAttrs)
             {
-                //See if we have previosly recorded this as a attribute we are interested in
+                //See if we have previously recorded this as a attribute we are interested in
                 string att = RemoveAttributeEnding(attData.AttributeClass.MetadataName);
                 if (SharpCheckerAttributes.Contains(att))
                 {
