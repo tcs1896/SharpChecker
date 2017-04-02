@@ -43,7 +43,7 @@ namespace SharpChecker
                 analyzers.Add(analyzer);
             }
 
-            //Now that we have instantiated all the analyzers interogate them to learn the associated attributes
+            //Now that we have instantiated all the analyzers ask them which attributes they analyze
             AddAttributesForAllAnalyzers();
         }
 
@@ -145,6 +145,8 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context)
         {
+            //Here we are executing each analyzer in turn, is there a way that we could
+            //compose them so that we didn't have to do this
             foreach (var analyzer in analyzers)
             {
                 analyzer.AnalyzeExpression(context, context.Node);
@@ -235,8 +237,16 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void VerifyTypeAnnotations(SemanticModelAnalysisContext context)
         {
-            var walker = new SCBaseSyntaxWalker(rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);
-            walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
+            foreach(var analyzer in analyzers)
+            {
+                var walkerType = analyzer.GetSyntaxWalkerType();
+                var walker = (SCBaseSyntaxWalker)Activator.CreateInstance(walkerType, rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);
+                if (analyzer == null) { continue; }
+                walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
+            }
+
+            //var walker = new NullnessSyntaxWalker(rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);
+            //walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
 
             //A thought about expanding upon the current functionality:
             //From this point forward we would never need to persist the information which we gain back out to the world so

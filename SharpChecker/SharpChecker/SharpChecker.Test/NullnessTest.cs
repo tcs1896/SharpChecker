@@ -22,6 +22,8 @@ namespace SharpChecker.Test
             return new SharpCheckerDiagnosticAnalyzer();
         }
 
+        public string CheckersFilename { get => "nullness.xml"; } 
+
         public const string ProgStart = @"
             using System;
             using System.Collections.Generic;
@@ -74,7 +76,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(ProgStart, body, ProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]
@@ -88,7 +90,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(ProgStart, body, ProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]
@@ -102,7 +104,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(ProgStart, body, ProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]
@@ -133,7 +135,7 @@ namespace SharpChecker.Test
                 Locations = diagLoc
             };
 
-            VerifyCSharpDiagnostic(test, expected);
+            VerifyCSharpDiagnostic(test, CheckersFilename, expected);
         }
     }
 }

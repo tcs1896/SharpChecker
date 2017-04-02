@@ -29,6 +29,7 @@ namespace SharpChecker
             {
                 // The mechanism for pulling in additional files and reading the xml content was based on the sample
                 // provided in the roslyn source: https://github.com/dotnet/roslyn/blob/master/docs/analyzers/Using%20Additional%20Files.md
+
                 // Find the file with the checkers we are enabling
                 ImmutableArray<AdditionalText> additionalFiles = compilationContext.Options.AdditionalFiles;
                 AdditionalText checkersFile = additionalFiles.FirstOrDefault(file => Path.GetFileName(file.Path).Equals("checkers.xml"));

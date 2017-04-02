@@ -51,6 +51,11 @@ namespace SharpChecker
             return new List<String>() { nameof(SharpCheckerAttribute) };
         }
 
+        public virtual Type GetSyntaxWalkerType()
+        {
+            return typeof(SCBaseSyntaxWalker);
+        }
+
 
         /// <summary>
         /// Descend into the syntax tree as far as necessary to determine the associated attributes which are expected.

@@ -21,6 +21,8 @@ namespace SharpChecker.Test
             return new SharpCheckerDiagnosticAnalyzer();
         }
 
+        public string CheckersFilename { get => "encrypted.xml"; }
+
         public const string baseClass = @"using System;
                 using System.Collections.Generic;
                 using System.Linq;
@@ -84,7 +86,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]
@@ -149,7 +151,7 @@ namespace SharpChecker.Test
                 Locations = diagLoc
             };
 
-            VerifyCSharpDiagnostic(test, expected);
+            VerifyCSharpDiagnostic(test, CheckersFilename, expected);
         }
     }
 }

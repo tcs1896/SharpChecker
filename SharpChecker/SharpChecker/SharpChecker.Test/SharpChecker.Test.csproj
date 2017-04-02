@@ -129,6 +129,8 @@
   </ItemGroup>
   <ItemGroup>
     <Content Include="checkers.xml" />
+    <Content Include="encrypted.xml" />
+    <Content Include="nullness.xml" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

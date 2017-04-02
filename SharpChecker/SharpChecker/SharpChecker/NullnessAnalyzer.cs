@@ -30,5 +30,10 @@ namespace SharpChecker
         {
             return new List<String>() { nameof(NonNullAttribute) };
         }
+
+        public override Type GetSyntaxWalkerType()
+        {
+            return typeof(NullnessSyntaxWalker);
+        }
     }
 }

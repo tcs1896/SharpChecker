@@ -23,7 +23,8 @@ namespace SharpChecker.Test
             this.path = path;
         }
 
-        public override string Path => path;
+        //Mask the real value of the path so that we can use different files for different unit tests
+        public override string Path => "checkers.xml";
 
         public override SourceText GetText(CancellationToken cancellationToken)
         {

@@ -13,17 +13,17 @@ namespace SharpChecker
 {
     class SCBaseSyntaxWalker : CSharpSyntaxWalker
     {
-        private Dictionary<string, DiagnosticDescriptor> rulesDict;
-        private ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
-        private SemanticModelAnalysisContext context;
-        private List<string> sharpCheckerAttributes;
+        internal Dictionary<string, DiagnosticDescriptor> rulesDict;
+        internal ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
+        internal SemanticModelAnalysisContext context;
+        internal List<string> attributesOfInterest;
 
-        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> SharpCheckerAttributes)
+        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> attributesOfInterest)
         {
             this.rulesDict = rulesDict;
             this.AnnotationDictionary = annotationDictionary;
             this.context = context;
-            this.sharpCheckerAttributes = SharpCheckerAttributes;
+            this.attributesOfInterest = attributesOfInterest;
         }
 
         /// <summary>
@@ -31,10 +31,10 @@ namespace SharpChecker
         /// methods such as VisitInvocationExpression
         /// </summary>
         /// <param name="node"></param>
-        public override void Visit(SyntaxNode node)
-        {
-            base.Visit(node);
-        }
+        //public override void Visit(SyntaxNode node)
+        //{
+        //    base.Visit(node);
+        //}
 
         public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
         {
@@ -60,7 +60,7 @@ namespace SharpChecker
         /// overriding method does not allow circumvention of those attributes
         /// </summary>
         /// <param name="methodDecl"></param>
-        private void VerifyMethodDecl(MethodDeclarationSyntax methodDecl)
+        internal virtual void VerifyMethodDecl(MethodDeclarationSyntax methodDecl)
         {
             //This will lookup the method associated with the invocation expression
             var childMethodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDecl);
@@ -114,7 +114,7 @@ namespace SharpChecker
                             foreach (var fa in finalAttrs)
                             {
                                 var faName = fa.Name.ToString();
-                                if (sharpCheckerAttributes.Contains(faName))
+                                if (attributesOfInterest.Contains(faName))
                                 {
                                     stringAttrs.Add(faName);
                                 }
@@ -148,7 +148,7 @@ namespace SharpChecker
         /// </summary>
         /// <param name="location"></param>
         /// <param name="errorAttributes"></param>
-        private void ReportDiagsForEach(Location location, List<string> errorAttributes)
+        internal void ReportDiagsForEach(Location location, List<string> errorAttributes)
         {
             if(errorAttributes == null || errorAttributes.Count() == 0) { return; }
 
@@ -165,7 +165,7 @@ namespace SharpChecker
         /// </summary>
         /// <param name="returnTypeAttrs"></param>
         /// <returns></returns>
-        private List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
+        internal List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
         {
             var retAttrStrings = new List<String>();
             foreach (var attData in returnTypeAttrs)
@@ -174,7 +174,7 @@ namespace SharpChecker
                 string att = attData.AttributeClass.MetadataName;
                 att = att.EndsWith("Attribute") ? att.Replace("Attribute", "") : att;
 
-                if (sharpCheckerAttributes.Contains(att))
+                if (attributesOfInterest.Contains(att))
                 {
                     retAttrStrings.Add(att);
                 }
@@ -187,7 +187,7 @@ namespace SharpChecker
         /// If the variable to which we are assigning a value has an annotation, then we need to verify that the
         /// expression to which it is assigned with yeild a value with the appropriate annotation
         /// </summary>
-        private void VerifyAssignmentExpr(AssignmentExpressionSyntax assignmentExpression)
+        internal virtual void VerifyAssignmentExpr(AssignmentExpressionSyntax assignmentExpression)
         {
             List<String> expectedAttributes = null;
             // First check the variable to which we are assigning
@@ -225,6 +225,14 @@ namespace SharpChecker
                         returnTypeAttrs = AnnotationDictionary[invocationExpr.Expression].FirstOrDefault();
                     }
                     break;
+                case SyntaxKind.StringLiteralExpression:
+                case SyntaxKind.StringLiteralToken:
+                    string strDefault = GetDefaultForStringLiteral();
+                    if(!string.IsNullOrWhiteSpace(strDefault))
+                    {
+                        returnTypeAttrs = new List<string>() { strDefault };
+                    }
+                    break;
             }
 
             // Now we check the return type to see if there is an attribute assigned
@@ -246,7 +254,7 @@ namespace SharpChecker
         /// If we are invoking a method which has attributes on its formal parameters, then we need to verify that
         /// the arguments passed abide by these annotations
         /// </summary>
-        private void VerifyInvocationExpr(InvocationExpressionSyntax invocationExpr)
+        internal virtual void VerifyInvocationExpr(InvocationExpressionSyntax invocationExpr)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
             //We may need to recursively dig into the expression if the top level doesn't hand over a identifier
@@ -290,10 +298,10 @@ namespace SharpChecker
         /// </summary>
         /// <param name="expectedAttributes">A collection of expected attributes</param>
         /// <param name="node">The node which is being analyzed</param>
-        private void VerifyExpectedAttrInExpression(List<string> expectedAttributes, SyntaxNode node)
+        internal virtual void VerifyExpectedAttrInExpression(List<string> expectedAttributes, SyntaxNode node)
         {
             //Need to make a local copy the expected attributes incase we recurse and use the same original
-            //for multiple branches
+            //collection of expected attributes for multiple branches
             List<string> expectedAttr = new List<string>(expectedAttributes);
 
             //Here we are handling the case where the argument is an identifier
@@ -323,122 +331,133 @@ namespace SharpChecker
                 VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenTrue);
                 VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenFalse);
             }
-            else
+            else if (node is LiteralExpressionSyntax argLit)
             {
                 //We are probably dealing with a literal - which cannot have the associated attribute
-                if (node is LiteralExpressionSyntax argLit)
+                //However, we probably need to consider the default here.  For the nullness type
+                //system we may want to implicitly assign [NonNull] to literals
+
+                //Get the default attibute for a literal
+                var defaultAttr = GetDefaultForStringLiteral();
+                if (!string.IsNullOrWhiteSpace(defaultAttr) && expectedAttr.Contains(defaultAttr))
                 {
-                    ReportDiagsForEach(argLit.GetLocation(), expectedAttr);
+                    expectedAttr.Remove(defaultAttr);
                 }
-                else
+                ReportDiagsForEach(argLit.GetLocation(), expectedAttr);
+            }
+            else
+            {
+                List<String> returnTypeAttrs = null;
+                if (node is InvocationExpressionSyntax argInvExpr)
                 {
-                    List<String> returnTypeAttrs = null;
-                    if (node is InvocationExpressionSyntax argInvExpr)
+                    //If we have a local method invocation
+                    if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
                     {
-                        //If we have a local method invocation
-                        if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
+                        if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
                         {
-                            if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
-                            {
-                                returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
-                            }
+                            returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
                         }
-                        else
+                    }
+                    else
+                    {
+                        //If we don't have a local method invocation, we may have a static or instance method invocation
+                        if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
                         {
-                            //If we don't have a local method invocation, we may have a static or instance method invocation
-                            if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
+                            if (AnnotationDictionary.ContainsKey(memberAccessExpr))
                             {
-                                if (AnnotationDictionary.ContainsKey(memberAccessExpr))
-                                {
-                                    returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
-                                }
+                                returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
                             }
                         }
                     }
+                }
 
-                    if (returnTypeAttrs != null)
+                if (returnTypeAttrs != null)
+                {
+                    // Now we check the return type to see if there is an attribute assigned
+                    foreach (var retAttr in returnTypeAttrs)
                     {
-                        // Now we check the return type to see if there is an attribute assigned
-                        foreach (var retAttr in returnTypeAttrs)
+                        if (expectedAttr.Contains(retAttr))
                         {
-                            if (expectedAttr.Contains(retAttr))
-                            {
-                                expectedAttr.Remove(retAttr);
-                            }
+                            expectedAttr.Remove(retAttr);
                         }
-
-                        //If we haven't found a match then present a diagnotic error
-                        ReportDiagsForEach(node.GetLocation(), expectedAttr);
                     }
-                    else //We may be dealing with a field like String.Empty
+
+                    //If we haven't found a match then present a diagnotic error
+                    ReportDiagsForEach(node.GetLocation(), expectedAttr);
+                }
+                else //We may be dealing with a field like String.Empty
+                {
+                    returnTypeAttrs = new List<string>();
+                    if (AnnotationDictionary.ContainsKey(node))
                     {
-                        returnTypeAttrs = new List<string>();
-                        if (AnnotationDictionary.ContainsKey(node))
-                        {
-                            returnTypeAttrs = AnnotationDictionary[node].FirstOrDefault();
-                        }
-
-                        foreach (var retAttr in returnTypeAttrs)
-                        {
-                            if (expectedAttr.Contains(retAttr))
-                            {
-                                expectedAttr.Remove(retAttr);
-                            }
-                        }
-
-                        //If we haven't found a match then present a diagnotic error
-                        ReportDiagsForEach(node.GetLocation(), expectedAttr);
-
-                        //var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
-                        //if (fieldSymbol != null)
-                        //{
-                        //    var fieldAttrs = fieldSymbol.GetAttributes();
-                        //    foreach (var fieldAttr in fieldAttrs)
-                        //    {
-                        //        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
-                        //        {
-                        //            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
-                        //        }
-                        //    }
-                        //    //If we haven't found a match then present a diagnotic error
-                        //    if (expectedAttribute[i].Count() > 0)
-                        //    {
-                        //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
-                        //        context.ReportDiagnostic(diagnostic);
-                        //    }
-                        //}
-                        //else
-                        //{
-                        //    var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
-                        //    if (propertySymbol != null)
-                        //    {
-                        //        var propAttrs = fieldSymbol.GetAttributes();
-                        //        foreach (var propAttr in propAttrs)
-                        //        {
-                        //            if (expectedAttribute[i].Contains(propAttr.AttributeClass.ToString()))
-                        //            {
-                        //                //TODO: Need mechanism to determine which attributes we care about so
-                        //                //that additional ones which are present do not throw off our analysis
-                        //                //and present warnings when they should not
-                        //                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
-                        //            }
-                        //        }
-                        //        //If we haven't found a match then present a diagnotic error
-                        //        if (expectedAttribute[i].Count() > 0)
-                        //        {
-                        //            var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
-                        //            context.ReportDiagnostic(diagnostic);
-                        //        }
-                        //    }
-                        //    else
-                        //    {
-                        //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), nameof(AttributeType.NotImplemented));
-                        //        context.ReportDiagnostic(diagnostic);
-                        //    }
-                        //}
+                        returnTypeAttrs = AnnotationDictionary[node].FirstOrDefault();
                     }
+
+                    foreach (var retAttr in returnTypeAttrs)
+                    {
+                        if (expectedAttr.Contains(retAttr))
+                        {
+                            expectedAttr.Remove(retAttr);
+                        }
+                    }
+
+                    //If we haven't found a match then present a diagnotic error
+                    ReportDiagsForEach(node.GetLocation(), expectedAttr);
+
+                    //var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
+                    //if (fieldSymbol != null)
+                    //{
+                    //    var fieldAttrs = fieldSymbol.GetAttributes();
+                    //    foreach (var fieldAttr in fieldAttrs)
+                    //    {
+                    //        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
+                    //        {
+                    //            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
+                    //        }
+                    //    }
+                    //    //If we haven't found a match then present a diagnotic error
+                    //    if (expectedAttribute[i].Count() > 0)
+                    //    {
+                    //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                    //        context.ReportDiagnostic(diagnostic);
+                    //    }
+                    //}
+                    //else
+                    //{
+                    //    var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
+                    //    if (propertySymbol != null)
+                    //    {
+                    //        var propAttrs = fieldSymbol.GetAttributes();
+                    //        foreach (var propAttr in propAttrs)
+                    //        {
+                    //            if (expectedAttribute[i].Contains(propAttr.AttributeClass.ToString()))
+                    //            {
+                    //                //TODO: Need mechanism to determine which attributes we care about so
+                    //                //that additional ones which are present do not throw off our analysis
+                    //                //and present warnings when they should not
+                    //                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
+                    //            }
+                    //        }
+                    //        //If we haven't found a match then present a diagnotic error
+                    //        if (expectedAttribute[i].Count() > 0)
+                    //        {
+                    //            var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
+                    //            context.ReportDiagnostic(diagnostic);
+                    //        }
+                    //    }
+                    //    else
+                    //    {
+                    //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), nameof(AttributeType.NotImplemented));
+                    //        context.ReportDiagnostic(diagnostic);
+                    //    }
+                    //}
                 }
             }
+        }
+
+        internal virtual string GetDefaultForStringLiteral()
+        {
+            return null;
         }
     }
 }

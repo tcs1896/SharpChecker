@@ -21,6 +21,8 @@ namespace SharpChecker.Test
             return new SharpCheckerDiagnosticAnalyzer();
         }
 
+        public string CheckersFilename { get => "encrypted.xml"; }
+
         public const string EncryptionProgStart = @"
             using System;
             using System.Collections.Generic;
@@ -106,7 +108,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]
@@ -123,7 +125,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
 
@@ -143,7 +145,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
 
@@ -164,7 +166,7 @@ namespace SharpChecker.Test
 
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         /// <summary>
@@ -237,7 +239,7 @@ namespace SharpChecker.Test
                 int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
                 var quarterback = teamNumbers.Select(num => num < 20).FirstOrDefault();";
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         /// <summary>
@@ -334,7 +336,7 @@ namespace SharpChecker.Test
 
             var test = $"{EncryptionProgStart}{body}{EncryptionProgEnd}";
 
-            VerifyCSharpDiagnostic(test);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]
@@ -371,7 +373,7 @@ namespace SharpChecker.Test
                 Locations = diagLoc
             };
 
-            VerifyCSharpDiagnostic(test, expected);
+            VerifyCSharpDiagnostic(test, CheckersFilename, expected);
         }
 
         //The below methods were added to help with an issue causing a test to fail
