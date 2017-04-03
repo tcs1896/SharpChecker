@@ -50,6 +50,11 @@ namespace SharpChecker.Test
         private const string ProgEnd = @"
 
                     }
+
+                    public void PrintGreeting([NonNull] string greeting)
+                    {
+                        Console.WriteLine($""Hello {greeting}"");
+                    }
                 }
 
                 [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
@@ -73,6 +78,23 @@ namespace SharpChecker.Test
                 //This property has an attribute which indicates it may be null, so assigning
                 //null should not result in a diagnostic
                 MaybeNullProp = null;";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_UseMaybeNullWithinGuardedBlock()
+        {
+            var body = @"                
+
+                //--Acceptable Cases--//
+                //If we have checked explicitly for null, then no diagnostic should be presented
+                if(MaybeNullProp != null)
+                {
+                    PrintGreeting(MaybeNullProp);
+                }";
 
             var test = String.Concat(ProgStart, body, ProgEnd);
 
@@ -114,6 +136,19 @@ namespace SharpChecker.Test
                 //--Error Cases--//
                 //Assigning null to a property which has the NonNull attribute should result in a diagnostic
                 NonNullProp = null;";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 31) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void PassNullLiteralAsNonNullArgument()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //Passing null as an argument to a method which expects a NonNull value should result in a diagnostic
+                PrintGreeting(null);";
 
             var test = String.Concat(ProgStart, body, ProgEnd);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 31) };

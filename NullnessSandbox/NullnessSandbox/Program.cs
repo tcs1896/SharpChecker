@@ -13,7 +13,7 @@ namespace NullnessSandbox
             Console.ReadLine();
         }
 
-        public int SendOverInternet(String msg)
+        public int SendOverInternet([NonNull] String msg)
         {
             return 15;
         }
@@ -44,8 +44,15 @@ namespace NullnessSandbox
             MaybeNullProp = null;
             MaybeNullProp = "String literal";
 
+            if(RawText != null)
+            {
+                SendOverInternet(RawText);
+            }
+
             //--Error Cases--//
             NonNullProp = null;
+            SendOverInternet(null);
+            SendOverInternet(RawText);
 
             //Random samples
             int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };

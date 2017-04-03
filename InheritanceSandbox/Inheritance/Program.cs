@@ -2,7 +2,7 @@
 using System.Linq;
 using SharpChecker.attributes;
 
-namespace Inheritance
+namespace InheritanceSandbox
 {
     class Program
     {
