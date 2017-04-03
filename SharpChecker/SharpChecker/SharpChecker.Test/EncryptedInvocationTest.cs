@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace SharpChecker.Test
 {
     [TestClass]
-    public class UnitTest : CodeFixVerifier
+    public class EncryptedInvocationTest : CodeFixVerifier
     {
         /// <summary>
         /// Override the appropriate method to pass in our analyzer
@@ -128,27 +128,6 @@ namespace SharpChecker.Test
             VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
-
-
-        [TestMethod]
-        public void NoDiagnosticsResult_AssignmentToUnattributed()
-        {
-            //This unit test is failing when all tests are run, but not when it is executed in isolation
-            var body = @"                
-                ////////////////////////////////////////////////////
-                //Expression Statement - Assignment Statements
-                ///////////////////////////////////////////////////
-
-                //--Acceptable Cases--//
-                //We permit Encrypted values being assigned to unencrypted
-                RawText = Encrypt(plaintext);";
-
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-
-            VerifyCSharpDiagnostic(test, CheckersFilename);
-        }
-
-
         [TestMethod]
         public void NoDiagnosticsResult_TernaryOperator()
         {
@@ -185,61 +164,6 @@ namespace SharpChecker.Test
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 59) };
             VerifyDiag(test, diagLoc);
-        }
-
-        /// <summary>
-        /// Here we are assigning the result of a method with no attributes to a property
-        /// which can only contain [Encrypted] values, so a diagnostic is generated.
-        /// </summary>
-        [TestMethod]
-        public void AssignmentDecoratedPropToUndecoratedResult()
-        {
-            var body = @"                
-                //--Error Cases--//
-                //This should cause the diagnostic to fire because the return type of the method
-                //doesn't have the appropriate attribute
-                Ciphertext = RemoveSpecialChars(plaintext, 3);";
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 30) };
-            VerifyDiag(test, diagLoc);
-        }
-
-        [TestMethod]
-        public void AssignmentDecoratedPropToUndecoratedResultFromStaticMethod()
-        {
-            var body = @"                
-                //--Error Cases--//
-                //This should cause the diagnostic to fire because the return type of the method
-                //doesn't have the appropriate attribute
-                //Introduce a static method call
-                Ciphertext = Utilities.ExecuteQuery(""Update user.workstatus set status = 'Hired'"");";
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 30) };
-            VerifyDiag(test, diagLoc);
-        }
-
-        [TestMethod]
-        public void AssignmentDecoratedPropToUndecoratedResultFromConstructor()
-        {
-            var body = @"                
-                //--Error Cases--//
-                //This is an example of assigning to a property - at the moment this should present an error
-                //because an attribute has been added to the property.
-                new Utilities().MyProperty = new Object();";
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 46) };
-            VerifyDiag(test, diagLoc);
-        }
-
-        [TestMethod]
-        public void NoDiagnosticsResult_AssignmentsWithNoAttribues()
-        {
-            var body = @"                
-                //Random samples
-                int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
-                var quarterback = teamNumbers.Select(num => num < 20).FirstOrDefault();";
-            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
-            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         /// <summary>
@@ -318,25 +242,6 @@ namespace SharpChecker.Test
                 new DiagnosticResultLocation("Test0.cs", 42, 34)
             };
             VerifyDiag(test, diagLoc);
-        }
-
-        [TestMethod]
-        public void NoDiagnosticsResult_AssignmentWithMatchingAttribute()
-        {
-            //This unit test is failing when all tests are run, but not when it is executed in isolation
-            var body = @"                
-                ////////////////////////////////////////////////////
-                //Expression Statement - Assignment Statements
-                ///////////////////////////////////////////////////
-
-                //--Acceptable Cases--//
-                //The return type of Encrypt is annotated, and will match the annotation 
-                //of Ciphertext, so this should be accepted
-                Ciphertext = Encrypt(plaintext);";
-
-            var test = $"{EncryptionProgStart}{body}{EncryptionProgEnd}";
-
-            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         [TestMethod]

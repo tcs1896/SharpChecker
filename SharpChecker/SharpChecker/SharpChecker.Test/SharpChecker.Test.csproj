@@ -105,14 +105,15 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnalyzerAdditionalFile.cs" />
-    <Compile Include="MethodOverrideTest.cs" />
+    <Compile Include="EncryptedAssignmentTest.cs" />
+    <Compile Include="EncryptedMethodOverrideTest.cs" />
     <Compile Include="NullnessTest.cs" />
     <Compile Include="Verifiers\CodeFixVerifier.cs" />
     <Compile Include="Verifiers\DiagnosticVerifier.cs" />
     <Compile Include="Helpers\CodeFixVerifier.Helper.cs" />
     <Compile Include="Helpers\DiagnosticResult.cs" />
     <Compile Include="Helpers\DiagnosticVerifier.Helper.cs" />
-    <Compile Include="InvocationAndAssignmentTest.cs" />
+    <Compile Include="EncryptedInvocationTest.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>

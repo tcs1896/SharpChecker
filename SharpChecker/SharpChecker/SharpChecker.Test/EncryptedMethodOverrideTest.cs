@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace SharpChecker.Test
 {
     [TestClass]
-    public class MethodOverrideTest : CodeFixVerifier
+    public class EncryptedMethodOverrideTest : CodeFixVerifier
     {
         /// <summary>
         /// Override the appropriate method to pass in our analyzer
