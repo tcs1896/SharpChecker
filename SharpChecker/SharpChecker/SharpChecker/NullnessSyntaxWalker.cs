@@ -26,5 +26,10 @@ namespace SharpChecker
         {
             return "NonNull";
         }
+
+        internal override string GetDefaultForNullLiteral()
+        {
+            return "Nullable";
+        }
     }
 }

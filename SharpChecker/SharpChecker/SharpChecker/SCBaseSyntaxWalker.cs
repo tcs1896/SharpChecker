@@ -227,10 +227,18 @@ namespace SharpChecker
                     break;
                 case SyntaxKind.StringLiteralExpression:
                 case SyntaxKind.StringLiteralToken:
-                    string strDefault = GetDefaultForStringLiteral();
+                    var strDefault = GetDefaultForStringLiteral();
                     if(!string.IsNullOrWhiteSpace(strDefault))
                     {
                         returnTypeAttrs = new List<string>() { strDefault };
+                    }
+                    break;
+                case SyntaxKind.NullLiteralExpression:
+                case SyntaxKind.NullKeyword:
+                    var nullDefault = GetDefaultForNullLiteral();
+                    if (!string.IsNullOrWhiteSpace(nullDefault))
+                    {
+                        returnTypeAttrs = new List<string>() { nullDefault };
                     }
                     break;
             }
@@ -333,129 +341,98 @@ namespace SharpChecker
             }
             else if (node is LiteralExpressionSyntax argLit)
             {
-                //We are probably dealing with a literal - which cannot have the associated attribute
+                //We are dealing with a literal - which cannot have the associated attribute
                 //However, we probably need to consider the default here.  For the nullness type
-                //system we may want to implicitly assign [NonNull] to literals
+                //system we may want to implicitly assign [NonNull] to literal strings
+                string defaultAttr = string.Empty;
+                if (node.RawKind == (int)SyntaxKind.NullLiteralExpression)
+                {
+                    defaultAttr = GetDefaultForNullLiteral();
+                }
+                else
+                {
+                    //Get the default attibute for a literal string
+                    defaultAttr = GetDefaultForStringLiteral();
+                }
 
-                //Get the default attibute for a literal
-                var defaultAttr = GetDefaultForStringLiteral();
                 if (!string.IsNullOrWhiteSpace(defaultAttr) && expectedAttr.Contains(defaultAttr))
                 {
                     expectedAttr.Remove(defaultAttr);
                 }
                 ReportDiagsForEach(argLit.GetLocation(), expectedAttr);
             }
-            else
+            else if (node is InvocationExpressionSyntax argInvExpr)
             {
-                List<String> returnTypeAttrs = null;
-                if (node is InvocationExpressionSyntax argInvExpr)
+                List<String> returnTypeAttrs = new List<string>();
+
+                //If we have a local method invocation
+                if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
                 {
-                    //If we have a local method invocation
-                    if (argInvExpr.Expression is IdentifierNameSyntax methodIdNameExpr)
+                    if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
                     {
-                        if (AnnotationDictionary.ContainsKey(methodIdNameExpr))
-                        {
-                            returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
-                        }
+                        returnTypeAttrs = AnnotationDictionary[methodIdNameExpr].FirstOrDefault();
                     }
-                    else
+                }
+                else
+                {
+                    //If we don't have a local method invocation, we may have a static or instance method invocation
+                    if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
                     {
-                        //If we don't have a local method invocation, we may have a static or instance method invocation
-                        if (argInvExpr.Expression is MemberAccessExpressionSyntax memberAccessExpr)
+                        if (AnnotationDictionary.ContainsKey(memberAccessExpr))
                         {
-                            if (AnnotationDictionary.ContainsKey(memberAccessExpr))
-                            {
-                                returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
-                            }
+                            returnTypeAttrs = AnnotationDictionary[memberAccessExpr].FirstOrDefault();
                         }
                     }
                 }
 
-                if (returnTypeAttrs != null)
+                // Now we check the return type to see if there is an attribute assigned
+                foreach (var retAttr in returnTypeAttrs)
                 {
-                    // Now we check the return type to see if there is an attribute assigned
-                    foreach (var retAttr in returnTypeAttrs)
+                    if (expectedAttr.Contains(retAttr))
                     {
-                        if (expectedAttr.Contains(retAttr))
-                        {
-                            expectedAttr.Remove(retAttr);
-                        }
+                        expectedAttr.Remove(retAttr);
                     }
-
-                    //If we haven't found a match then present a diagnotic error
-                    ReportDiagsForEach(node.GetLocation(), expectedAttr);
                 }
-                else //We may be dealing with a field like String.Empty
+
+                //If we haven't found a match then present a diagnotic error
+                ReportDiagsForEach(node.GetLocation(), expectedAttr);
+            }
+            else //if (node is MemberAccessExpressionSyntax memAccessExpr)
+            {
+                //We may be dealing with a field like String.Empty
+                List<String> returnTypeAttrs = new List<string>();
+                if (AnnotationDictionary.ContainsKey(node))
                 {
-                    returnTypeAttrs = new List<string>();
-                    if (AnnotationDictionary.ContainsKey(node))
-                    {
-                        returnTypeAttrs = AnnotationDictionary[node].FirstOrDefault();
-                    }
-
-                    foreach (var retAttr in returnTypeAttrs)
-                    {
-                        if (expectedAttr.Contains(retAttr))
-                        {
-                            expectedAttr.Remove(retAttr);
-                        }
-                    }
-
-                    //If we haven't found a match then present a diagnotic error
-                    ReportDiagsForEach(node.GetLocation(), expectedAttr);
-
-                    //var fieldSymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IFieldSymbol;
-                    //if (fieldSymbol != null)
-                    //{
-                    //    var fieldAttrs = fieldSymbol.GetAttributes();
-                    //    foreach (var fieldAttr in fieldAttrs)
-                    //    {
-                    //        if (expectedAttribute[i].Contains(fieldAttr.AttributeClass.ToString()))
-                    //        {
-                    //            expectedAttribute[i].Remove(fieldAttr.AttributeClass.ToString());
-                    //        }
-                    //    }
-                    //    //If we haven't found a match then present a diagnotic error
-                    //    if (expectedAttribute[i].Count() > 0)
-                    //    {
-                    //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
-                    //        context.ReportDiagnostic(diagnostic);
-                    //    }
-                    //}
-                    //else
-                    //{
-                    //    var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
-                    //    if (propertySymbol != null)
-                    //    {
-                    //        var propAttrs = fieldSymbol.GetAttributes();
-                    //        foreach (var propAttr in propAttrs)
-                    //        {
-                    //            if (expectedAttribute[i].Contains(propAttr.AttributeClass.ToString()))
-                    //            {
-                    //                //TODO: Need mechanism to determine which attributes we care about so
-                    //                //that additional ones which are present do not throw off our analysis
-                    //                //and present warnings when they should not
-                    //                expectedAttribute[i].Remove(propAttr.AttributeClass.ToString());
-                    //            }
-                    //        }
-                    //        //If we haven't found a match then present a diagnotic error
-                    //        if (expectedAttribute[i].Count() > 0)
-                    //        {
-                    //            var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), description);
-                    //            context.ReportDiagnostic(diagnostic);
-                    //        }
-                    //    }
-                    //    else
-                    //    {
-                    //        var diagnostic = Diagnostic.Create(rule, argumentList.Arguments[i].Expression.GetLocation(), nameof(AttributeType.NotImplemented));
-                    //        context.ReportDiagnostic(diagnostic);
-                    //    }
-                    //}
+                    returnTypeAttrs = AnnotationDictionary[node].FirstOrDefault();
                 }
+
+                foreach (var retAttr in returnTypeAttrs)
+                {
+                    if (expectedAttr.Contains(retAttr))
+                    {
+                        expectedAttr.Remove(retAttr);
+                    }
+                }
+
+                //If we haven't found a match then present a diagnotic error
+                ReportDiagsForEach(node.GetLocation(), expectedAttr);
             }
         }
 
+        /// <summary>
+        /// This should be overridden when a default attribute should be applied to string literal expressions
+        /// </summary>
+        /// <returns>The attribute inferred for string literals</returns>
         internal virtual string GetDefaultForStringLiteral()
+        {
+            return null;
+        }
+
+        /// <summary>
+        /// This should be overridden when a default attribute should be applied to null literal expressions
+        /// </summary>
+        /// <returns>The attribute inferred for null literals</returns>
+        internal virtual string GetDefaultForNullLiteral()
         {
             return null;
         }
