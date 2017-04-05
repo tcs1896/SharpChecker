@@ -265,9 +265,14 @@ namespace SharpChecker
         internal virtual void VerifyInvocationExpr(InvocationExpressionSyntax invocationExpr)
         {
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-            //We may need to recursively dig into the expression if the top level doesn't hand over a identifier
-            //TODO: Present a diagnostic instead of failing silently
-            if (identifierNameExpr == null) return;
+            if (identifierNameExpr == null)
+            {
+                var memAccess = invocationExpr.Expression as MemberAccessExpressionSyntax;
+                if(memAccess == null)
+                {
+                    ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { "Not Implemented" });
+                }
+            }
 
             //Get the expected attributes for the arguments of this invocation
             var argList = invocationExpr.ArgumentList;

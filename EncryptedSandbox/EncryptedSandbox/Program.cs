@@ -81,7 +81,7 @@ namespace EncryptedSandbox
             new Utilities().MyProperty = new Object();
             Ciphertext = "";
             Ciphertext = String.Empty;
-
+            
             //Random samples
             int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
             var quarterback = teamNumbers.Select(num => num < SendOverInternet(RawText)).FirstOrDefault();
@@ -114,6 +114,9 @@ namespace EncryptedSandbox
             }
             this.ProgramFactory().RemoveSpecialChars(plaintext, 5);
 
+            Utilities utils = new Utilities();
+            utils.WriteToDisk(Ciphertext);
+
             //--Error Cases--//
             //This should generate an error because 'RawText' does not have the [Encrypted] attribute
             SendOverInternet(RawText);
@@ -125,6 +128,10 @@ namespace EncryptedSandbox
             SendOverInternet(RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)));
             SendOverInternet(yep ? RemoveSpecialChars(Encrypt(plaintext + " ending"), (3 + 5)) : Encrypt(plaintext));
             SendOverInternet(plaintext + " ending");
+
+            //We only want to write encrypted values to disk
+            utils.WriteToDisk("unencrypted string");
+            utils.WriteToDisk(plaintext);
         }
     }
 }

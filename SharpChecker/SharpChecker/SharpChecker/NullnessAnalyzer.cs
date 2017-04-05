@@ -1,4 +1,6 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
+using Microsoft.CodeAnalysis.Diagnostics;
 using SharpChecker.attributes;
 using System;
 using System.Collections.Generic;
@@ -21,14 +23,34 @@ namespace SharpChecker
         {
             var dict = new Dictionary<string, DiagnosticDescriptor>
             {
-                { nameof(NonNullAttribute).Replace("Attribute", ""), NullnessRule }
+                { nameof(NonNullAttribute).Replace("Attribute", ""), NullnessRule },
+                { nameof(MaybeNullAttribute).Replace("Attribute", ""), NullnessRule }
             };
             return dict;
         }
 
+        internal override void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
+        {
+            //We want to present a warning when we are dereferencing variable which may be null
+            //TODO: Should we assume that variables without a attributes may be null
+            if (invocationExpr.Expression is MemberAccessExpressionSyntax memAccessExpr)
+            {
+                var identifierNameExpr = memAccessExpr.Expression;
+                var dereferencedAttrs = context.SemanticModel.GetSymbolInfo(memAccessExpr.Expression).Symbol.GetAttributes();
+                var filteredAttrs = ASTUtil.GetSharpCheckerAttributeStrings(dereferencedAttrs);
+                if (!ASTUtil.AnnotationDictionary.ContainsKey(identifierNameExpr) && filteredAttrs.Count() > 0)
+                {
+                    ASTUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { filteredAttrs });
+                }
+            }
+
+            //Now perform the normal collection of attributes
+            base.AnalyzeInvocationExpr(context, invocationExpr);
+        }
+
         public override List<String> GetAttributesToUseInAnalysis()
         {
-            return new List<String>() { nameof(NonNullAttribute) };
+            return new List<String>() { nameof(NonNullAttribute), nameof(MaybeNullAttribute) };
         }
 
         public override Type GetSyntaxWalkerType()

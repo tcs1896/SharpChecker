@@ -80,6 +80,11 @@ namespace SharpChecker.Test
                         //Execute the query against the database
                         return 1;
                     }
+
+                    public void WriteToDisk([Encrypted] string encVal)
+                    {
+                        //Serialize the value, and write it to disk
+                    }
                 }
 
                 [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)] 
@@ -193,6 +198,21 @@ namespace SharpChecker.Test
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 42, 34) };
             VerifyDiag(test, diagLoc);
         }
+
+        [TestMethod]
+        public void InvocationArgumentDoesntRespectParamAttribute_MemberAccess()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //This should generate an error because a string literal does not have the [Encrypted] attribute
+                Utilities utils = new Utilities();
+                utils.WriteToDisk(""unencrypted string"");";
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 35) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        
 
         [TestMethod]
         public void InvocationArgumentDoesntRespectParamAttribute_EmptyString()

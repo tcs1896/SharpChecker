@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
 using System.Collections.Concurrent;
@@ -22,6 +23,26 @@ namespace SharpChecker
             base(rulesDict, annotationDictionary, context, attributesOfInterest)
         { }
 
+        internal override void VerifyInvocationExpr(InvocationExpressionSyntax invocationExpr)
+        {
+            //If the member being dereferenced may be null then present a diagnostic
+            if (invocationExpr.Expression is MemberAccessExpressionSyntax memAccess)
+            {
+                List<List<String>> expectedAttributes = null;
+                if (AnnotationDictionary.ContainsKey(memAccess.Expression))
+                {
+                    expectedAttributes = AnnotationDictionary[memAccess.Expression];
+                    if(expectedAttributes[0].Contains("MaybeNull"))
+                    {
+                        ReportDiagsForEach(memAccess.Expression.GetLocation(), new List<string>() { "MaybeNull" });
+                    }
+                }
+            }
+
+            //Now perform the standard verification
+            base.VerifyInvocationExpr(invocationExpr);
+        }
+
         internal override string GetDefaultForStringLiteral()
         {
             return "NonNull";
@@ -29,7 +50,7 @@ namespace SharpChecker
 
         internal override string GetDefaultForNullLiteral()
         {
-            return "Nullable";
+            return "MaybeNull";
         }
     }
 }

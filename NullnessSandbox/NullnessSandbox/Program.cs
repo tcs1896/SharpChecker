@@ -49,10 +49,13 @@ namespace NullnessSandbox
                 SendOverInternet(RawText);
             }
 
+            SendOverInternet(String.Empty);
+
             //--Error Cases--//
             NonNullProp = null;
             SendOverInternet(null);
             SendOverInternet(RawText);
+            
 
             //Random samples
             int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };

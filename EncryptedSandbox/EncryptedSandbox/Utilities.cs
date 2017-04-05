@@ -13,5 +13,10 @@ namespace EncryptedSandbox
             //Execute the query against the database
             return 1;
         }
+
+        public void WriteToDisk([Encrypted] string encVal)
+        {
+            //Serialize the value, and write it to disk
+        }
     }
 }

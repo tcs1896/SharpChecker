@@ -86,16 +86,22 @@ namespace SharpChecker
         /// </summary>
         /// <param name="context">The analysis context</param>
         /// <param name="invocationExpr">A syntax node</param>
-        private void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
+        internal virtual void AnalyzeInvocationExpr(SyntaxNodeAnalysisContext context, InvocationExpressionSyntax invocationExpr)
         {
+            //This will store the method associated with the invocation expression
+            IMethodSymbol memberSymbol = null;
             var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
-            if (identifierNameExpr == null)
+
+            if (identifierNameExpr != null)
             {
-                return;
+                memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
+            }
+            else
+            { 
+                var memAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
+                memberSymbol = context.SemanticModel.GetSymbolInfo(memAccessExpr).Symbol as IMethodSymbol;
             }
 
-            //This will lookup the method associated with the invocation expression
-            var memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             //If we failed to lookup the symbol then bail
             if (memberSymbol == null)
             {

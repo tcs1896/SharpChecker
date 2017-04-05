@@ -105,7 +105,6 @@ namespace SharpChecker.Test
         public void NoDiagnosticsResult_AssignStringLiteralToMaybeNull()
         {
             var body = @"                
-
                 //--Acceptable Cases--//
                 //Assigning a string literal should be acceptable regardless of the nullability
                 MaybeNullProp = ""literal"";";
@@ -113,6 +112,32 @@ namespace SharpChecker.Test
             var test = String.Concat(ProgStart, body, ProgEnd);
 
             VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_AssignNonNullToMaybeNull()
+        {
+            var body = @"                
+                //--Acceptable Cases--//
+                //Assigning a string literal should be acceptable regardless of the nullability
+                MaybeNullProp = NonNullProp;";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void AssigningMaybeNullToNonNull()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //Assigning null to a property which has the NonNull attribute should result in a diagnostic
+                NonNullProp = MaybeNullProp;";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 31) };
+            VerifyDiag(test, diagLoc);
         }
 
         [TestMethod]
@@ -141,6 +166,19 @@ namespace SharpChecker.Test
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 31) };
             VerifyDiag(test, diagLoc);
         }
+        
+        [TestMethod]
+        public void DereferencingMaybeNull()
+        {
+            var body = @"                
+                //--Error Cases--//
+                //Dereferencing a property which may be null should result in a diagnostic
+                MaybeNullProp.ToLower();";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 17) };
+            VerifyDiag(test, diagLoc, "MaybeNull");
+        }
 
         [TestMethod]
         public void PassNullLiteralAsNonNullArgument()
@@ -160,12 +198,12 @@ namespace SharpChecker.Test
         /// </summary>
         /// <param name="test"></param>
         /// <param name="diagLoc"></param>
-        private void VerifyDiag(string test, DiagnosticResultLocation[] diagLoc)
+        private void VerifyDiag(string test, DiagnosticResultLocation[] diagLoc, string attr = "NonNull")
         {
             var expected = new DiagnosticResult
             {
                 Id = "NullnessChecker",
-                Message = String.Format("Attribute application error {0}", "NonNull"),
+                Message = String.Format("Attribute application error {0}", attr),
                 Severity = DiagnosticSeverity.Error,
                 Locations = diagLoc
             };
