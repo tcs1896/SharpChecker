@@ -19,7 +19,7 @@ namespace SharpChecker
         /// <param name="annotationDictionary"></param>
         /// <param name="context"></param>
         /// <param name="attributesOfInterest"></param>
-        public NullnessSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> attributesOfInterest) :
+        public NullnessSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<Node> attributesOfInterest) :
             base(rulesDict, annotationDictionary, context, attributesOfInterest)
         { }
 
@@ -34,7 +34,7 @@ namespace SharpChecker
                     expectedAttributes = AnnotationDictionary[memAccess.Expression];
                     if(expectedAttributes[0].Contains("MaybeNull"))
                     {
-                        ReportDiagsForEach(memAccess.Expression.GetLocation(), new List<string>() { "MaybeNull" });
+                        ReportDiagsForEach(memAccess.Expression.GetLocation(), new List<string>() { "MaybeNull" }, new List<string>());
                     }
                 }
             }

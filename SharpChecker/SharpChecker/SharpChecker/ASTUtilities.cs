@@ -17,7 +17,7 @@ namespace SharpChecker
         //Eventually, they may be inferred based on context, data flow, and control flow.
         public ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary = new ConcurrentDictionary<SyntaxNode, List<List<string>>>();
         //The list of attributes with which the analysis will be concerned
-        public List<string> SharpCheckerAttributes = new List<string>();
+        public List<Node> SharpCheckerAttributes = new List<Node>();
         //The list of analyzers which were specified in the checkers.xml file in the target project
         private List<SCBaseAnalyzer> analyzers = new List<SCBaseAnalyzer>();
         //A dictionary mapping the attribute to the associated rule.  Used in the walker class to register diagnostics.
@@ -69,12 +69,13 @@ namespace SharpChecker
         /// with which SharpChecker will concern itself.
         /// </summary>
         /// <param name="attr">The name of the attribute class</param>
-        public void AddAttributeClassToAnalysis(string attr)
+        public void AddAttributeClassToAnalysis(Node attr)
         {
-            var attrToAdd = RemoveAttributeEnding(attr);
-            if (!SharpCheckerAttributes.Contains(attrToAdd))
+            var attrToAdd = RemoveAttributeEnding(attr.AttributeName);
+            if(!SharpCheckerAttributes.Any(nod => nod.AttributeName == attr.AttributeName))
             {
-                SharpCheckerAttributes.Add(attrToAdd);
+                attr.AttributeName = attrToAdd;
+                SharpCheckerAttributes.Add(attr);
             }
         }
 
@@ -166,7 +167,8 @@ namespace SharpChecker
             {
                 //See if we have previously recorded this as a attribute we are interested in
                 string att = RemoveAttributeEnding(attData.AttributeClass.MetadataName);
-                if (SharpCheckerAttributes.Contains(att))
+                //if (SharpCheckerAttributes.Contains(att))
+                if(SharpCheckerAttributes.Any(nod => nod.AttributeName == att))
                 {
                     retAttrStrings.Add(att);
                 }

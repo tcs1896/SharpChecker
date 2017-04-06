@@ -16,9 +16,9 @@ namespace SharpChecker
         internal Dictionary<string, DiagnosticDescriptor> rulesDict;
         internal ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
         internal SemanticModelAnalysisContext context;
-        internal List<string> attributesOfInterest;
+        internal List<Node> attributesOfInterest;
 
-        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<string> attributesOfInterest)
+        public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<Node> attributesOfInterest)
         {
             this.rulesDict = rulesDict;
             this.AnnotationDictionary = annotationDictionary;
@@ -79,19 +79,15 @@ namespace SharpChecker
                 List<string> returnTypeAttrStrings = GetSharpCheckerAttributeStrings(returnTypeAttrs);
 
                 var derivedReturnTypeAttrs = childMethodSymbol.GetReturnTypeAttributes();
-
+                List<string> actualAttrs = new List<string>();
                 foreach (var derTypeAttr in derivedReturnTypeAttrs)
                 {
                     string derTypeAttrString = derTypeAttr.AttributeClass.MetadataName.ToString();
                     derTypeAttrString = derTypeAttrString.EndsWith("Attribute") ? derTypeAttrString.Replace("Attribute", "") : derTypeAttrString;
-
-                    if (returnTypeAttrStrings.Contains(derTypeAttrString))
-                    {
-                        returnTypeAttrStrings.Remove(derTypeAttrString);
-                    }
+                    actualAttrs.Add(derTypeAttrString);
                 }
 
-                ReportDiagsForEach(methodDecl.Identifier.GetLocation(), returnTypeAttrStrings);
+                ReportDiagsForEach(methodDecl.Identifier.GetLocation(), returnTypeAttrStrings, actualAttrs);
 
                 //Now check to see if the attributes of the parameters agree with the overriden method
                 var derivedMethParams = methodDecl.ParameterList.Parameters;
@@ -114,7 +110,7 @@ namespace SharpChecker
                             foreach (var fa in finalAttrs)
                             {
                                 var faName = fa.Name.ToString();
-                                if (attributesOfInterest.Contains(faName))
+                                if (attributesOfInterest.Any(nod => nod.AttributeName == faName))
                                 {
                                     stringAttrs.Add(faName);
                                 }
@@ -124,19 +120,17 @@ namespace SharpChecker
                         //Get the attributes of the same param for the derived method
                         var derParam = derivedMethParams[i];
                         var derAttrs = derParam.AttributeLists.AsEnumerable();
+                        var actuals = new List<string>();
                         foreach (var derParamAttr in derAttrs)
                         {
                             var innerAttr = derParamAttr.Attributes;
                             foreach (var ia in innerAttr)
                             {
-                                if (stringAttrs.Contains(ia.Name.ToString()))
-                                {
-                                    stringAttrs.Remove(ia.Name.ToString());
-                                }
+                                actuals.Add(ia.Name.ToString());
                             }
                         }
 
-                        ReportDiagsForEach(derivedMethParams[i].GetLocation(), stringAttrs);
+                        ReportDiagsForEach(derivedMethParams[i].GetLocation(), stringAttrs, actuals);
                     }
                 }
             }
@@ -147,12 +141,22 @@ namespace SharpChecker
         /// been paired off with a matching occurance and removed
         /// </summary>
         /// <param name="location"></param>
-        /// <param name="errorAttributes"></param>
-        internal void ReportDiagsForEach(Location location, List<string> errorAttributes)
+        /// <param name="expectedAttributes"></param>
+        internal void ReportDiagsForEach(Location location, List<string> expectedAttributes, List<string> actualAttributes)
         {
-            if(errorAttributes == null || errorAttributes.Count() == 0) { return; }
+            if(expectedAttributes == null || expectedAttributes.Count() == 0) { return; }
 
-            foreach (var errorAttr in errorAttributes)
+            // Now we check the return type to see if there is an attribute assigned
+            foreach (var actAttr in actualAttributes)
+            {
+                var actualNode = attributesOfInterest.Where(nod => nod.AttributeName == actAttr).FirstOrDefault();
+                if(!String.IsNullOrWhiteSpace(actualNode.AttributeName))
+                {
+                    RemoveAllInHierarchy(expectedAttributes, actualNode);
+                }
+            }
+
+            foreach (var errorAttr in expectedAttributes)
             {
                 var diagnostic = Diagnostic.Create(rulesDict[errorAttr], location, errorAttr);
                 context.ReportDiagnostic(diagnostic);
@@ -160,8 +164,37 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Accepts a collection of attributes and filters them down to those which were discovered
-        /// to have the [SharpChecker] attribute
+        /// Walk up the supertype hiearachy (DAG) removing all expected attributes which are satisfied
+        /// both those which are present
+        /// </summary>
+        /// <param name="expectedAttributes">The collection of expected attributes which is modified in place</param>
+        /// <param name="actualNode">The actual attribute with its supertypes</param>
+        private static void RemoveAllInHierarchy(List<string> expectedAttributes, Node actualNode)
+        {
+            if (expectedAttributes.Contains(actualNode.AttributeName))
+            {
+                expectedAttributes.Remove(actualNode.AttributeName);
+            }
+
+            var supertypes = actualNode.Supertypes;
+            if (supertypes != null && supertypes.Count() > 0)
+            {
+                foreach (var sup in supertypes)
+                {
+                    if (expectedAttributes.Contains(sup.AttributeName))
+                    {
+                        expectedAttributes.Remove(sup.AttributeName);
+                    }
+
+                    //Continue to walk up the chain
+                    RemoveAllInHierarchy(expectedAttributes, sup);
+                }
+            }
+        }
+
+
+        /// <summary>
+        /// Accepts a collection of attributes and filters them down to those which were registered for analysis
         /// </summary>
         /// <param name="returnTypeAttrs"></param>
         /// <returns></returns>
@@ -174,7 +207,7 @@ namespace SharpChecker
                 string att = attData.AttributeClass.MetadataName;
                 att = att.EndsWith("Attribute") ? att.Replace("Attribute", "") : att;
 
-                if (attributesOfInterest.Contains(att))
+                if (attributesOfInterest.Any(nod => nod.AttributeName == att))
                 {
                     retAttrStrings.Add(att);
                 }
@@ -241,19 +274,16 @@ namespace SharpChecker
                         returnTypeAttrs = new List<string>() { nullDefault };
                     }
                     break;
-            }
-
-            // Now we check the return type to see if there is an attribute assigned
-            foreach (var retAttr in returnTypeAttrs)
-            {
-                if (expectedAttributes.Contains(retAttr))
-                {
-                    expectedAttributes.Remove(retAttr);
-                }
+                case SyntaxKind.IdentifierName:
+                    if(assignmentExpression.Right is IdentifierNameSyntax identifier)
+                    {
+                        returnTypeAttrs = AnnotationDictionary[identifier].FirstOrDefault();
+                    }
+                    break;
             }
 
             //If we haven't found a match then present a diagnotic error
-            ReportDiagsForEach(assignmentExpression.Right.GetLocation(), expectedAttributes);
+            ReportDiagsForEach(assignmentExpression.Right.GetLocation(), expectedAttributes, returnTypeAttrs);
         }
 
 
@@ -270,7 +300,7 @@ namespace SharpChecker
                 var memAccess = invocationExpr.Expression as MemberAccessExpressionSyntax;
                 if(memAccess == null)
                 {
-                    ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { "Not Implemented" });
+                    ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { "Not Implemented" }, null);
                 }
             }
 
@@ -327,16 +357,8 @@ namespace SharpChecker
                     argAttrs = AnnotationDictionary[argI].FirstOrDefault();
                 }
 
-                foreach (var argAttr in argAttrs)
-                {
-                    if (expectedAttr.Contains(argAttr))
-                    {
-                        expectedAttr.Remove(argAttr);
-                    }
-                }
-
                 //If we haven't found a match then present a diagnotic error
-                ReportDiagsForEach(argI.GetLocation(), expectedAttr);
+                ReportDiagsForEach(argI.GetLocation(), expectedAttr, argAttrs);
             }
             else if (node is ConditionalExpressionSyntax conditional)
             {
@@ -360,11 +382,7 @@ namespace SharpChecker
                     defaultAttr = GetDefaultForStringLiteral();
                 }
 
-                if (!string.IsNullOrWhiteSpace(defaultAttr) && expectedAttr.Contains(defaultAttr))
-                {
-                    expectedAttr.Remove(defaultAttr);
-                }
-                ReportDiagsForEach(argLit.GetLocation(), expectedAttr);
+                ReportDiagsForEach(argLit.GetLocation(), expectedAttr, new List<string>() { defaultAttr });
             }
             else if (node is InvocationExpressionSyntax argInvExpr)
             {
@@ -390,17 +408,8 @@ namespace SharpChecker
                     }
                 }
 
-                // Now we check the return type to see if there is an attribute assigned
-                foreach (var retAttr in returnTypeAttrs)
-                {
-                    if (expectedAttr.Contains(retAttr))
-                    {
-                        expectedAttr.Remove(retAttr);
-                    }
-                }
-
                 //If we haven't found a match then present a diagnotic error
-                ReportDiagsForEach(node.GetLocation(), expectedAttr);
+                ReportDiagsForEach(node.GetLocation(), expectedAttr, returnTypeAttrs);
             }
             else //if (node is MemberAccessExpressionSyntax memAccessExpr)
             {
@@ -411,16 +420,8 @@ namespace SharpChecker
                     returnTypeAttrs = AnnotationDictionary[node].FirstOrDefault();
                 }
 
-                foreach (var retAttr in returnTypeAttrs)
-                {
-                    if (expectedAttr.Contains(retAttr))
-                    {
-                        expectedAttr.Remove(retAttr);
-                    }
-                }
-
                 //If we haven't found a match then present a diagnotic error
-                ReportDiagsForEach(node.GetLocation(), expectedAttr);
+                ReportDiagsForEach(node.GetLocation(), expectedAttr, returnTypeAttrs);
             }
         }
 

@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace SharpChecker.attributes
 {
+    [SubtypeOf("MaybeNull")]
     [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
     public class NonNullAttribute : Attribute
     {

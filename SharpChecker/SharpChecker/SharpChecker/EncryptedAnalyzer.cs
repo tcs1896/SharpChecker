@@ -27,9 +27,9 @@ namespace SharpChecker
             return dict;
         }
 
-        public override List<String> GetAttributesToUseInAnalysis()
+        public override List<Node> GetAttributesToUseInAnalysis()
         {
-            return new List<String>() { nameof(EncryptedAttribute) };
+            return new List<Node>() { new Node() { AttributeName = nameof(EncryptedAttribute) } };
         }
 
     }

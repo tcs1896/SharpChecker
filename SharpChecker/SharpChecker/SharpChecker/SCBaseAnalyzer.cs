@@ -46,9 +46,9 @@ namespace SharpChecker
         /// register attributes for analysis.  Within the method you should use
         /// <sref>AddAttributeClassToAnalysis</sref> to register each attribute
         /// </summary>
-        public virtual List<String> GetAttributesToUseInAnalysis()
+        public virtual List<Node> GetAttributesToUseInAnalysis()
         {
-            return new List<String>() { nameof(SharpCheckerAttribute) };
+            return new List<Node>() { new Node() { AttributeName = nameof(SharpCheckerAttribute) } };
         }
 
         public virtual Type GetSyntaxWalkerType()
@@ -212,8 +212,14 @@ namespace SharpChecker
         /// <param name="assignmentExpression">A syntax node</param>
         public void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
         {
+            AnalyzeAssignmentSubexpression(context, assignmentExpression.Left);
+            AnalyzeAssignmentSubexpression(context, assignmentExpression.Right);
+        }
+
+        private void AnalyzeAssignmentSubexpression(SyntaxNodeAnalysisContext context, ExpressionSyntax assignmentExpression)
+        {
             // First check the variable to which we are assigning
-            if (assignmentExpression.Left is IdentifierNameSyntax identifierName)
+            if (assignmentExpression is IdentifierNameSyntax identifierName)
             {
                 List<string> attrs = ASTUtil.GetAttributes(context, identifierName);
 
@@ -226,7 +232,7 @@ namespace SharpChecker
             }
             else
             {
-                if (assignmentExpression.Left is MemberAccessExpressionSyntax memAccess)
+                if (assignmentExpression is MemberAccessExpressionSyntax memAccess)
                 {
                     List<string> memAttrs = ASTUtil.GetAttributes(context, memAccess);
 

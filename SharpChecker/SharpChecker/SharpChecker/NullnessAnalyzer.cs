@@ -48,9 +48,11 @@ namespace SharpChecker
             base.AnalyzeInvocationExpr(context, invocationExpr);
         }
 
-        public override List<String> GetAttributesToUseInAnalysis()
+        public override List<Node> GetAttributesToUseInAnalysis()
         {
-            return new List<String>() { nameof(NonNullAttribute), nameof(MaybeNullAttribute) };
+            //TODO: Should have to hard code "MaybeNull" string - we currently are truncating the "Attribute" off of the items in the supertypes collection
+            Node maybeNull = new Node() { AttributeName = "MaybeNull" };
+            return new List<Node>() { maybeNull, new Node() { AttributeName = nameof(NonNullAttribute), Supertypes = new List<Node>() { maybeNull } } };
         }
 
         public override Type GetSyntaxWalkerType()
