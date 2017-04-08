@@ -143,6 +143,45 @@ namespace SharpChecker.Test
             VerifyDiag(test, diagLoc);
         }
 
+        [TestMethod]
+        public void ReturnedValueDoesntHaveAttribute()
+        {
+            var overridingClass = @"                
+                class Program
+                {
+                    [return:Encrypted]
+                    public string Encrypt(string text)
+                    {
+                        string rtn = text; 
+                        // Performing the encryption
+                        return rtn;
+                    }
+                }";
+            var test = String.Concat(baseClass, overridingClass);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 46, 32) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_MethodReturnsAppropriatelyAttributedValue()
+        {
+            var overridingClass = @"                
+                class Program
+                {
+                    [Encrypted]
+                    private string enc;
+
+                    [return:Encrypted]
+                    public string Encrypt(string text)
+                    {
+                        // Performing the encryption
+                        return enc;
+                    }
+                }";
+            var test = String.Concat(baseClass, overridingClass);
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
         /// <summary>
         /// This is a helper method to push the verification through the machinery provided by DiagnosticVerifier
         /// </summary>

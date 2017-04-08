@@ -44,6 +44,12 @@ namespace SharpChecker
             base.VerifyInvocationExpr(invocationExpr);
         }
 
+        /// <summary>
+        /// We need to check for enclosing blocks with conditional comparisons to null which allow us
+        /// to refine the type of an identifier.
+        /// </summary>
+        /// <param name="expectedAttributes">The expected attributes</param>
+        /// <param name="node">The syntax node</param>
         internal override void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, SyntaxNode node)
         {
             //Look for a guard which checks for null and refine the type
@@ -58,6 +64,10 @@ namespace SharpChecker
                         switch(condition.Kind())
                         {
                             case SyntaxKind.EqualsExpression:
+                                //TODO: We might do something like explicitly checking for null and
+                                //initializeing a value.  However, this won't be a containing block.
+                                //We could also be in the else block of an equals comparison to null.
+                                //Would that be considered a containing block?
                                 break;
                             case SyntaxKind.NotEqualsExpression:
                                 var notEqExpr = condition as BinaryExpressionSyntax;
@@ -65,8 +75,6 @@ namespace SharpChecker
                                 if(notEqExpr.Right.Kind() == SyntaxKind.NullLiteralExpression)
                                 {
                                     exprSyn = notEqExpr.Left;
-
-                                    
                                 }
                                 else if (notEqExpr.Left.Kind() == SyntaxKind.NullLiteralExpression)
                                 {
@@ -89,16 +97,9 @@ namespace SharpChecker
                                             AnnotationDictionary[ident] = new List<List<string>>() { new List<string>() { "NonNull" } };
                                         }
                                     }
-
-                                    //AnnotationDictionary.TryAdd(ident, new List<List<string>>() { new List<string>() { "NotNull" } });
-
                                 }
-
                                 break;
                         }
-
-                        //var equals = condition.Kind() == SyntaxKind.NotEqualsExpression;
-                        //if(ifstmt is )
                     }
                 }
             }
