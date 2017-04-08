@@ -54,6 +54,31 @@ namespace SharpChecker
             base.VisitMethodDeclaration(node);
         }
 
+        public override void VisitReturnStatement(ReturnStatementSyntax node)
+        {
+            VerifyReturnStmt(node);
+            base.VisitReturnStatement(node);
+        }
+
+        private void VerifyReturnStmt(ReturnStatementSyntax node)
+        {
+            //Determine the expected return attributes of this method
+            SyntaxNode parent = node.Parent;
+            while(!(parent is MethodDeclarationSyntax))
+            {
+                parent = parent.Parent;
+            }
+            var expectedAttrs = new List<string>();
+            if (parent is MethodDeclarationSyntax methodDef)
+            {
+                var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDef);
+                expectedAttrs = GetSharpCheckerAttributeStrings(methodSymbol.GetReturnTypeAttributes());
+            }
+
+            //Verify the expression being returned has the appropriate annotation
+            VerifyExpectedAttrsInSyntaxNode(expectedAttrs, node.Expression);
+        }
+
         /// <summary>
         /// If a method declaration overrides a declaration in a base class which has attributes
         /// associated with the parameters or the return type, then we need to make sure that the
@@ -147,12 +172,15 @@ namespace SharpChecker
             if(expectedAttributes == null || expectedAttributes.Count() == 0) { return; }
 
             // Now we check the return type to see if there is an attribute assigned
-            foreach (var actAttr in actualAttributes)
+            if (actualAttributes != null)
             {
-                var actualNode = attributesOfInterest.Where(nod => nod.AttributeName == actAttr).FirstOrDefault();
-                if(!String.IsNullOrWhiteSpace(actualNode.AttributeName))
+                foreach (var actAttr in actualAttributes)
                 {
-                    RemoveAllInHierarchy(expectedAttributes, actualNode);
+                    var actualNode = attributesOfInterest.Where(nod => nod.AttributeName == actAttr).FirstOrDefault();
+                    if (!String.IsNullOrWhiteSpace(actualNode.AttributeName))
+                    {
+                        RemoveAllInHierarchy(expectedAttributes, actualNode);
+                    }
                 }
             }
 
@@ -196,12 +224,12 @@ namespace SharpChecker
         /// <summary>
         /// Accepts a collection of attributes and filters them down to those which were registered for analysis
         /// </summary>
-        /// <param name="returnTypeAttrs"></param>
+        /// <param name="attrDataCollection"></param>
         /// <returns></returns>
-        internal List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> returnTypeAttrs)
+        internal List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> attrDataCollection)
         {
-            var retAttrStrings = new List<String>();
-            foreach (var attData in returnTypeAttrs)
+            var attrStrings = new List<String>();
+            foreach (var attData in attrDataCollection)
             {
                 //See if we have previosly recorded this as a attribute we are interested in
                 string att = attData.AttributeClass.MetadataName;
@@ -209,11 +237,11 @@ namespace SharpChecker
 
                 if (attributesOfInterest.Any(nod => nod.AttributeName == att))
                 {
-                    retAttrStrings.Add(att);
+                    attrStrings.Add(att);
                 }
             }
 
-            return retAttrStrings;
+            return attrStrings;
         }
 
         /// <summary>
@@ -275,9 +303,9 @@ namespace SharpChecker
                     }
                     break;
                 case SyntaxKind.IdentifierName:
-                    if(assignmentExpression.Right is IdentifierNameSyntax identifier)
+                    if(assignmentExpression.Right is IdentifierNameSyntax identifier && AnnotationDictionary.Keys.Contains(identifier))
                     {
-                        returnTypeAttrs = AnnotationDictionary[identifier].FirstOrDefault();
+                        returnTypeAttrs = AnnotationDictionary[identifier]?.FirstOrDefault();
                     }
                     break;
             }
@@ -331,7 +359,7 @@ namespace SharpChecker
                 //type check.  However, there is some candidate analysis while the code is incomplete.
                 if (i < argumentList.Arguments.Count())
                 {
-                    VerifyExpectedAttrInExpression(expectedAttributes[i], argumentList.Arguments[i].Expression);
+                    VerifyExpectedAttrsInSyntaxNode(expectedAttributes[i], argumentList.Arguments[i].Expression);
                 }
             }
         }
@@ -341,7 +369,7 @@ namespace SharpChecker
         /// </summary>
         /// <param name="expectedAttributes">A collection of expected attributes</param>
         /// <param name="node">The node which is being analyzed</param>
-        internal virtual void VerifyExpectedAttrInExpression(List<string> expectedAttributes, SyntaxNode node)
+        internal virtual void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, SyntaxNode node)
         {
             //Need to make a local copy the expected attributes incase we recurse and use the same original
             //collection of expected attributes for multiple branches
@@ -363,8 +391,8 @@ namespace SharpChecker
             else if (node is ConditionalExpressionSyntax conditional)
             {
                 //Verify each branch of a ternary conditional expression
-                VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenTrue);
-                VerifyExpectedAttrInExpression(expectedAttr, conditional.WhenFalse);
+                VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenTrue);
+                VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenFalse);
             }
             else if (node is LiteralExpressionSyntax argLit)
             {

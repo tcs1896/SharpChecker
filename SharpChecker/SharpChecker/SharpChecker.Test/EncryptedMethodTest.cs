@@ -10,7 +10,7 @@ using System.Diagnostics;
 namespace SharpChecker.Test
 {
     [TestClass]
-    public class EncryptedMethodOverrideTest : CodeFixVerifier
+    public class EncryptedMethodTest : CodeFixVerifier
     {
         /// <summary>
         /// Override the appropriate method to pass in our analyzer
@@ -72,10 +72,14 @@ namespace SharpChecker.Test
             var overridingClass = @"                
                 class Graduate : Student
                 {
+                    [Encrypted]
+                    private double average;
+
                     [return:Encrypted]
                     public override double GetGPA()
                     {
-                        double average = (grades.Sum() / grades.Count()) * 1.05;
+                        //TODO: use mechanism to suppress warning here instead of commenting this out
+                        //average = (grades.Sum() / grades.Count()) * 1.05;
                         return average;
                     }
 
@@ -98,7 +102,7 @@ namespace SharpChecker.Test
                     [return:Encrypted]
                     public override double GetGPA()
                     {
-                        double average = (grades.Sum() / grades.Count()) * 1.05;
+                        //average = (grades.Sum() / grades.Count()) * 1.05;
                         return average;
                     }
 
@@ -107,6 +111,9 @@ namespace SharpChecker.Test
                         double inflation = grade + 1;
                         grades.Add(inflation);
                     }
+
+                    [Encrypted]
+                    private double average;
                 }";
             var test = String.Concat(baseClass, overridingClass);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 51) };

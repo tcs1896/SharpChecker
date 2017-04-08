@@ -119,7 +119,7 @@ namespace SharpChecker.Test
         {
             var body = @"                
                 //--Acceptable Cases--//
-                //Assigning a string literal should be acceptable regardless of the nullability
+                //Assigning a string literal should be acceptable regardless of the nullability  
                 MaybeNullProp = NonNullProp;";
 
             var test = String.Concat(ProgStart, body, ProgEnd);

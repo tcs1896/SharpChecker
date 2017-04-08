@@ -38,7 +38,7 @@ namespace SharpChecker
             //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
             //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
             //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
-            return new SyntaxKind[] { SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression };
+            return new SyntaxKind[] { SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression, SyntaxKind.ReturnStatement };
         }
 
         /// <summary>
@@ -75,7 +75,16 @@ namespace SharpChecker
                     var assignmentExpression = node as AssignmentExpressionSyntax;
                     AnalyzeAssignmentExpression(context, assignmentExpression);
                     break;
+                case SyntaxKind.ReturnStatement:
+                    var returnStmt = node as ReturnStatementSyntax;
+                    AnalyzeReturnStatement(context, returnStmt);
+                    break;
             }
+        }
+
+        private void AnalyzeReturnStatement(SyntaxNodeAnalysisContext context, ReturnStatementSyntax returnStmt)
+        {
+            AnalyzeSubexpression(context, returnStmt.Expression);
         }
 
         /// <summary>
@@ -97,9 +106,11 @@ namespace SharpChecker
                 memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             }
             else
-            { 
-                var memAccessExpr = invocationExpr.Expression as MemberAccessExpressionSyntax;
-                memberSymbol = context.SemanticModel.GetSymbolInfo(memAccessExpr).Symbol as IMethodSymbol;
+            {
+                if (invocationExpr.Expression is MemberAccessExpressionSyntax memAccessExpr)
+                {
+                    memberSymbol = context.SemanticModel.GetSymbolInfo(memAccessExpr).Symbol as IMethodSymbol;
+                }
             }
 
             //If we failed to lookup the symbol then bail
@@ -120,9 +131,9 @@ namespace SharpChecker
                 //This leads me to believe that the same identifier occurring in different locations in
                 //the source text may not be distinguished.  We could perhaps introduce a composite key
                 //involving "span" so that we could distinguish uses at different locations in the source text.
-                if (!ASTUtil.AnnotationDictionary.ContainsKey(identifierNameExpr))
+                if (!ASTUtil.AnnotationDictionary.ContainsKey(invocationExpr.Expression))
                 {
-                    ASTUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { retAttrStrings });
+                    ASTUtil.AnnotationDictionary.TryAdd(invocationExpr.Expression, new List<List<String>>() { retAttrStrings });
                 }
             }
 
@@ -212,14 +223,14 @@ namespace SharpChecker
         /// <param name="assignmentExpression">A syntax node</param>
         public void AnalyzeAssignmentExpression(SyntaxNodeAnalysisContext context, AssignmentExpressionSyntax assignmentExpression)
         {
-            AnalyzeAssignmentSubexpression(context, assignmentExpression.Left);
-            AnalyzeAssignmentSubexpression(context, assignmentExpression.Right);
+            AnalyzeSubexpression(context, assignmentExpression.Left);
+            AnalyzeSubexpression(context, assignmentExpression.Right);
         }
 
-        private void AnalyzeAssignmentSubexpression(SyntaxNodeAnalysisContext context, ExpressionSyntax assignmentExpression)
+        private void AnalyzeSubexpression(SyntaxNodeAnalysisContext context, ExpressionSyntax expr)
         {
             // First check the variable to which we are assigning
-            if (assignmentExpression is IdentifierNameSyntax identifierName)
+            if (expr is IdentifierNameSyntax identifierName)
             {
                 List<string> attrs = ASTUtil.GetAttributes(context, identifierName);
 
@@ -232,7 +243,7 @@ namespace SharpChecker
             }
             else
             {
-                if (assignmentExpression is MemberAccessExpressionSyntax memAccess)
+                if (expr is MemberAccessExpressionSyntax memAccess)
                 {
                     List<string> memAttrs = ASTUtil.GetAttributes(context, memAccess);
 

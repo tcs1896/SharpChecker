@@ -46,7 +46,7 @@ namespace SharpChecker.Test
                     {
                         string rtn = text;
                         // Performing the encryption
-                        return rtn;
+                        return Ciphertext;
                     }
 
                     public string RemoveSpecialChars(string original, int charCode)

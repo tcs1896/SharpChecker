@@ -33,10 +33,13 @@ namespace InheritanceSandbox
 
     class Graduate : Student
     {
+        [Encrypted]
+        private double average;
+
         [return:Encrypted]
         public override double GetGPA()
         {
-            double average = (grades.Sum() / grades.Count()) * 1.05;
+            average = (grades.Sum() / grades.Count()) * 1.05;
             return average;
         }
 

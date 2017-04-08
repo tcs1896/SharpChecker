@@ -1,4 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
+using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System;
@@ -41,6 +42,69 @@ namespace SharpChecker
 
             //Now perform the standard verification
             base.VerifyInvocationExpr(invocationExpr);
+        }
+
+        internal override void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, SyntaxNode node)
+        {
+            //Look for a guard which checks for null and refine the type
+            if (node is IdentifierNameSyntax ident)
+            {
+                if(expectedAttributes != null && expectedAttributes.Count() > 0)
+                {
+                    var surroundingIfs = node.Ancestors().OfType<IfStatementSyntax>();
+                    foreach(var ifstmt in surroundingIfs)
+                    {
+                        var condition = ifstmt.Condition;
+                        switch(condition.Kind())
+                        {
+                            case SyntaxKind.EqualsExpression:
+                                break;
+                            case SyntaxKind.NotEqualsExpression:
+                                var notEqExpr = condition as BinaryExpressionSyntax;
+                                ExpressionSyntax exprSyn = null;
+                                if(notEqExpr.Right.Kind() == SyntaxKind.NullLiteralExpression)
+                                {
+                                    exprSyn = notEqExpr.Left;
+
+                                    
+                                }
+                                else if (notEqExpr.Left.Kind() == SyntaxKind.NullLiteralExpression)
+                                {
+                                    exprSyn = notEqExpr.Right;
+                                }
+
+                                if(exprSyn != null)
+                                {
+                                    //lookup the symbol to see if it is the same as ident
+                                    var identSymbol = context.SemanticModel.GetSymbolInfo(ident).Symbol;
+                                    var conditionSymbol = context.SemanticModel.GetSymbolInfo(exprSyn).Symbol;
+
+                                    if (identSymbol == conditionSymbol)
+                                    {
+                                        //Update the attribute
+                                        if (AnnotationDictionary.ContainsKey(ident))
+                                        {
+                                            //TODO: We should really be replacing the MaybeNull attribute with NotNull instead of
+                                            //replacing all attributes with this one.
+                                            AnnotationDictionary[ident] = new List<List<string>>() { new List<string>() { "NonNull" } };
+                                        }
+                                    }
+
+                                    //AnnotationDictionary.TryAdd(ident, new List<List<string>>() { new List<string>() { "NotNull" } });
+
+                                }
+
+                                break;
+                        }
+
+                        //var equals = condition.Kind() == SyntaxKind.NotEqualsExpression;
+                        //if(ifstmt is )
+                    }
+                }
+            }
+
+            //Now perform the standard verification
+            base.VerifyExpectedAttrsInSyntaxNode(expectedAttributes, node);
         }
 
         internal override string GetDefaultForStringLiteral()
