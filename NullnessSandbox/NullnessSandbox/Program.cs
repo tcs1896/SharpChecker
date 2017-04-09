@@ -1,5 +1,6 @@
 ﻿using SharpChecker.attributes;
 using System;
+using System.Diagnostics;
 using System.Linq;
 
 namespace NullnessSandbox
@@ -11,6 +12,8 @@ namespace NullnessSandbox
             var prog = new Program();
             prog.SendText();
             Console.ReadLine();
+            //Debug.Assert(prog.RawText != null, "RawText:NonNull");
+            //prog.SendOverInternet(prog.RawText);
         }
 
         public int SendOverInternet([NonNull] String msg)
@@ -49,13 +52,20 @@ namespace NullnessSandbox
                 SendOverInternet(RawText);
             }
 
-            SendOverInternet(String.Empty);
+            //Debug.Assert(RawText != null);
+
+            if(MaybeNullProp != null)
+                SendOverInternet(MaybeNullProp);
+
+            SendOverInternet(NonNullProp);
 
             //--Error Cases--//
             NonNullProp = null;
             SendOverInternet(null);
             SendOverInternet(RawText);
-            
+            SendOverInternet(MaybeNullProp);
+            SendOverInternet(String.Empty);
+
 
             //Random samples
             int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
@@ -67,6 +77,12 @@ namespace NullnessSandbox
             {
                 myInt++;
             }
+        }
+
+        void SmallerMethod()
+        {
+            Debug.Assert(RawText != null, "RawText:NonNull");
+            SendOverInternet(RawText);
         }
     }
 }

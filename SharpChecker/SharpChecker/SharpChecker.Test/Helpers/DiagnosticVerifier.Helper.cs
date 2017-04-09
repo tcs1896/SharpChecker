@@ -58,10 +58,44 @@ namespace TestHelper
             var diagnostics = new List<Diagnostic>();
             foreach (var project in projects)
             {
-                var compilationWithAnalyzers = project.GetCompilationAsync().Result.WithAnalyzers(
+                //Mechanism for adding references and namespaces to the compilation discovered here:
+                //http://stackoverflow.com/questions/32769630/how-to-compile-a-c-sharp-file-with-roslyn-programmatically
+                IEnumerable<string> DefaultNamespaces =
+                new[]
+                {
+                    "System",
+                    "System.IO",
+                    "System.Net",
+                    "System.Linq",
+                    "System.Text",
+                    "System.Text.RegularExpressions",
+                    "System.Collections.Generic",
+                    "System.Diagnostics"
+                };
+
+                string runtimePath = @"C:\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.6.2\{0}.dll";
+
+                IEnumerable<MetadataReference> DefaultReferences =
+                new[]
+                {
+                    MetadataReference.CreateFromFile(string.Format(runtimePath, "mscorlib")),
+                    MetadataReference.CreateFromFile(string.Format(runtimePath, "System")),
+                    MetadataReference.CreateFromFile(string.Format(runtimePath, "System.Core"))
+                };
+
+                CSharpCompilationOptions DefaultCompilationOptions =
+                    new CSharpCompilationOptions(OutputKind.DynamicallyLinkedLibrary)
+                    .WithOverflowChecks(true).WithOptimizationLevel(OptimizationLevel.Release)
+                    .WithUsings(DefaultNamespaces);
+
+                var compilationWithAnalyzers = project.GetCompilationAsync().Result
+                    .WithReferences(DefaultReferences)
+                    .WithOptions(DefaultCompilationOptions)
+                    .WithAnalyzers(
                         ImmutableArray.Create(analyzer),
                         new AnalyzerOptions(ImmutableArray.Create<AdditionalText>(new AnalyzerAdditionalFile($"..\\..\\{checkersFilename}")))
                     );
+
                 var diags = compilationWithAnalyzers.GetAnalyzerDiagnosticsAsync().Result;
                 foreach (var diag in diags)
                 {

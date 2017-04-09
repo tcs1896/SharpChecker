@@ -60,6 +60,11 @@ namespace SharpChecker
             base.VisitReturnStatement(node);
         }
 
+        /// <summary>
+        /// If a method has a return attribute, then we need to verify that any return statements
+        /// appearing in the body of that function have the appropriate attribute
+        /// </summary>
+        /// <param name="node">The return statement syntax node</param>
         private void VerifyReturnStmt(ReturnStatementSyntax node)
         {
             //Determine the expected return attributes of this method
@@ -329,6 +334,15 @@ namespace SharpChecker
                 if(memAccess == null)
                 {
                     ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { "Not Implemented" }, null);
+                    return;
+                }
+                else
+                {
+                    //Check to see if this is an assertion
+                    if (memAccess?.Name.ToString() == "Assert")
+                    {
+                        RefineTypesBasedOnAssertion(invocationExpr, memAccess);
+                    }
                 }
             }
 
@@ -360,6 +374,73 @@ namespace SharpChecker
                 if (i < argumentList.Arguments.Count())
                 {
                     VerifyExpectedAttrsInSyntaxNode(expectedAttributes[i], argumentList.Arguments[i].Expression);
+                }
+            }
+        }
+
+        /// <summary>
+        /// When we encounter a Debug.Assert statement we parse the second argument looking for an identifier:attribute pair.
+        /// When we find a match for this pattern we refine the type of that identifier to be the attribute in the context
+        /// in which the Assert occurs.
+        /// </summary>
+        /// <param name="invocationExpr"></param>
+        /// <param name="memAccess"></param>
+        private void RefineTypesBasedOnAssertion(InvocationExpressionSyntax invocationExpr, MemberAccessExpressionSyntax memAccess)
+        {
+            var memberSymbol = context.SemanticModel.GetSymbolInfo(memAccess).Symbol as IMethodSymbol;
+            //If we are dealing with the correct namespace then bail
+            if (!memberSymbol?.ToString().StartsWith("System.Diagnostics.Debug.Assert") ?? true) return;
+            //If we make it this far we know we have an assertion
+            //Grab the argument which may contain additional information for SharpChecker
+            string variable = string.Empty;
+            string attribute = string.Empty;
+            if(invocationExpr.ArgumentList.Arguments.Count() > 1)
+            {
+                var refineStmt = invocationExpr.ArgumentList.Arguments[1].Expression as LiteralExpressionSyntax;
+
+                if (refineStmt == null) return;
+                //Now that we know its a literal we can retrieve the value
+                var patternOpt = context.SemanticModel.GetConstantValue(refineStmt);
+                if (!patternOpt.HasValue) return;
+                var pattern = patternOpt.Value as string;
+                if (pattern == null) return;
+
+                var splitAssertion = pattern.Split(':');
+                if(splitAssertion.Length > 0)
+                {
+                    variable = splitAssertion[0];
+                    attribute = splitAssertion[1];
+                }
+
+                if (!String.IsNullOrWhiteSpace(variable) && !String.IsNullOrWhiteSpace(attribute))
+                {
+                    //Backtrack to the context of the Debug.Assert method invocation then search
+                    //for any references to the variable which is being refined by the assertion
+                    var invocationContext = invocationExpr.Parent;
+                    while(invocationContext.Kind() != SyntaxKind.Block)
+                    {
+                        invocationContext = invocationContext.Parent;
+                    }
+
+                    var blockContext = invocationContext as BlockSyntax;
+                    foreach (var stmt in blockContext.Statements)
+                    {
+                        var allOccurances = stmt.DescendantNodes()
+                                            .OfType<IdentifierNameSyntax>()
+                                            .Where(idns => idns.Identifier.Text == variable);
+
+
+                        //Modify the attribute associated with the syntax node
+                        foreach (var occur in allOccurances)
+                        {
+                            if (AnnotationDictionary.ContainsKey(occur))
+                            {
+                                //TODO: We should really be replacing the appropriate attribute with the new one instead of
+                                //replacing all attributes.  The correct one is the one in the attribute hierarchy of the new one.
+                                AnnotationDictionary[occur] = new List<List<string>>() { new List<string>() { attribute } };
+                            }
+                        }
+                    }
                 }
             }
         }

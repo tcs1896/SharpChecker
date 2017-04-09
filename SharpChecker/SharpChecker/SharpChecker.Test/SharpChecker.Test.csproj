@@ -105,6 +105,7 @@
   </ItemGroup>
   <ItemGroup>
     <Compile Include="AnalyzerAdditionalFile.cs" />
+    <Compile Include="AssertionTest.cs" />
     <Compile Include="EncryptedAssignmentTest.cs" />
     <Compile Include="EncryptedMethodTest.cs" />
     <Compile Include="NullnessTest.cs" />

@@ -36,11 +36,15 @@ namespace SharpChecker
             if (invocationExpr.Expression is MemberAccessExpressionSyntax memAccessExpr)
             {
                 var identifierNameExpr = memAccessExpr.Expression;
-                var dereferencedAttrs = context.SemanticModel.GetSymbolInfo(memAccessExpr.Expression).Symbol.GetAttributes();
-                var filteredAttrs = ASTUtil.GetSharpCheckerAttributeStrings(dereferencedAttrs);
-                if (!ASTUtil.AnnotationDictionary.ContainsKey(identifierNameExpr) && filteredAttrs.Count() > 0)
+                var symbol = context.SemanticModel.GetSymbolInfo(memAccessExpr.Expression).Symbol;
+                if (symbol != null)
                 {
-                    ASTUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { filteredAttrs });
+                    var dereferencedAttrs = symbol.GetAttributes();
+                    var filteredAttrs = ASTUtil.GetSharpCheckerAttributeStrings(dereferencedAttrs);
+                    if (!ASTUtil.AnnotationDictionary.ContainsKey(identifierNameExpr) && filteredAttrs.Count() > 0)
+                    {
+                        ASTUtil.AnnotationDictionary.TryAdd(identifierNameExpr, new List<List<String>>() { filteredAttrs });
+                    }
                 }
             }
 
