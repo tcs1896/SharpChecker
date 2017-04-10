@@ -1,5 +1,6 @@
 ﻿using SharpChecker.attributes;
 using System;
+using System.Diagnostics;
 using System.Linq;
 
 namespace EncryptedSandbox
@@ -16,8 +17,9 @@ namespace EncryptedSandbox
         [return:Encrypted]
         public string Encrypt(string text)
         {
-            string rtn = text; 
+            string rtn = text;
             // Performing the encryption
+            Debug.Assert(true, "rtn:Encrypted");
             return rtn;
         }
 

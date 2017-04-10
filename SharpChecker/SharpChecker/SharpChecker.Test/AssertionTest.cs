@@ -97,6 +97,23 @@ namespace SharpChecker.Test
         }
 
         [TestMethod]
+        public void NoDiagnosticsResult_AssertionForLocalVariable()
+        {
+            var body = @"
+            [return:NonNull]
+            string SmallerMethod()
+            {
+                string rtn = null;
+                Debug.Assert(rtn != null, ""rtn:NonNull"");
+                return rtn;
+            }";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
         public void PassNullLiteralAsNonNullArgument()
         {
             var body = @"                

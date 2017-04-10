@@ -406,7 +406,7 @@ namespace SharpChecker
                 if (pattern == null) return;
 
                 var splitAssertion = pattern.Split(':');
-                if(splitAssertion.Length > 0)
+                if(splitAssertion.Length > 1)
                 {
                     variable = splitAssertion[0];
                     attribute = splitAssertion[1];
@@ -438,6 +438,11 @@ namespace SharpChecker
                                 //TODO: We should really be replacing the appropriate attribute with the new one instead of
                                 //replacing all attributes.  The correct one is the one in the attribute hierarchy of the new one.
                                 AnnotationDictionary[occur] = new List<List<string>>() { new List<string>() { attribute } };
+                                //ReplaceAttributeList(occur, attribute);
+                            }
+                            else
+                            {
+                                AnnotationDictionary.TryAdd(occur, new List<List<string>>() { new List<string>() { attribute } });
                             }
                         }
                     }
