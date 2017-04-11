@@ -4,6 +4,7 @@ using Microsoft.CodeAnalysis.Diagnostics;
 using SharpChecker.attributes;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -26,6 +27,7 @@ namespace SharpChecker
                 { nameof(NonNullAttribute).Replace("Attribute", ""), NullnessRule },
                 { nameof(MaybeNullAttribute).Replace("Attribute", ""), NullnessRule }
             };
+            Debug.Assert(dict != null, "dict:NonNull");
             return dict;
         }
 

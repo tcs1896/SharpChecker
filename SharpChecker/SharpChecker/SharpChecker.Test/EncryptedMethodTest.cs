@@ -54,6 +54,15 @@ namespace SharpChecker.Test
                     }
 
                     [return:Encrypted]
+                    public virtual List<string> GetClasses() 
+                    { 
+                        return initialized; 
+                    }
+
+                    [Encrypted]
+                    public List<string> initialized = new List<string>();
+
+                    [return:Encrypted]
                     public abstract double GetGPA();
                 }
 
@@ -116,7 +125,7 @@ namespace SharpChecker.Test
                     private double average;
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 48, 51) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 57, 51) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -139,7 +148,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 41, 44) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 50, 44) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -158,7 +167,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 46, 32) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 55, 32) };
             VerifyDiag(test, diagLoc);
         }
 
@@ -180,6 +189,38 @@ namespace SharpChecker.Test
                 }";
             var test = String.Concat(baseClass, overridingClass);
             VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void OverridingMethodWithGenericHasNoAttribute()
+        {
+            var overridingClass = @"                
+                class Graduate : Student
+                {
+                    [return:Encrypted]
+                    public override double GetGPA()
+                    {
+                        //average = (grades.Sum() / grades.Count()) * 1.05;
+                        return average;
+                    }
+
+                    public override void AddGrade([Encrypted] double grade)
+                    {
+                        double inflation = grade + 1;
+                        grades.Add(inflation);
+                    }
+
+                    public override List<string> GetClasses()
+                    {
+                        return new List<string>() { ""CSCI720"" };
+                    }
+
+                    [Encrypted]
+                    private double average;
+                }";
+            var test = String.Concat(baseClass, overridingClass);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 63, 50) };
+            VerifyDiag(test, diagLoc);
         }
 
         /// <summary>

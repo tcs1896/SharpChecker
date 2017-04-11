@@ -22,13 +22,23 @@ namespace SharpChecker
         private const string Category = "Syntax";
         private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
 
+        //This is used to indicate when something has not yet been implemented
+        private const string NIDiagnosticId = "NotImplementedId";
+        private const string NITitle = "Error in SharpChecker implementation";
+        private const string NIMessageFormat = "This use case has not been implemented. {0}";
+        private const string NIDescription = "The checker applied doesn't handle this use case";
+        private const string NICategory = "Syntax";
+        private static DiagnosticDescriptor NIRule = new DiagnosticDescriptor(NIDiagnosticId, NITitle, NIMessageFormat, NICategory, DiagnosticSeverity.Error, isEnabledByDefault: true, description: NIDescription);
+
         public ASTUtilities ASTUtil { get; set; }
 
+        [return:NonNull]
         public virtual Dictionary<string, DiagnosticDescriptor> GetRules()
         {
             var dict = new Dictionary<string, DiagnosticDescriptor>
             {
-                { nameof(SharpCheckerAttribute).Replace("Attribute", ""), Rule }
+                { nameof(SharpCheckerAttribute).Replace("Attribute", ""), Rule },
+                { "Not Implemented", NIRule }
             };
             return dict;
         }

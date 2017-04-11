@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SharpChecker.attributes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -450,14 +451,45 @@ namespace SharpChecker
             }
         }
 
+        public void ReplaceAttributeList(SyntaxNode synNode, string attribute)
+        {
+
+            AnnotationDictionary[synNode] = new List<List<string>>() { new List<string>() { attribute } };
+            //List<string> toUpdate = AnnotationDictionary[synNode][0];
+            //foreach (string attr in toUpdate)
+            //{
+            //    foreach (var interest in attributesOfInterest)
+            //    {
+            //        bool isInHierarchy = IsInHeirarchy(interest);
+            //    }
+            //}
+
+            //Node toReplace;
+            //foreach(var attr in attributesOfInterest)
+            //{
+            //    if(attr.AttributeName == attribute)
+            //    {
+
+            //    }
+            //}
+        }
+
+        //private bool IsInHeirarchy(Node interest)
+        //{
+        //    if(interest.AttributeName)
+        //}
+
         /// <summary>
         /// Used to confirm that the expression in node has the expected attributes
         /// </summary>
         /// <param name="expectedAttributes">A collection of expected attributes</param>
         /// <param name="node">The node which is being analyzed</param>
-        internal virtual void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, SyntaxNode node)
+        internal virtual void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, [NonNull] SyntaxNode node)
         {
-            //Need to make a local copy the expected attributes incase we recurse and use the same original
+            //If there are no expected attributes, or there is no node to analyze then bail
+            if(expectedAttributes == null || expectedAttributes.Count() == 0 || node == null) { return; }
+
+            //Need to make a local copy the expected attributes in case we recurse and use the same original
             //collection of expected attributes for multiple branches
             List<string> expectedAttr = new List<string>(expectedAttributes);
 
@@ -525,7 +557,7 @@ namespace SharpChecker
                 //If we haven't found a match then present a diagnotic error
                 ReportDiagsForEach(node.GetLocation(), expectedAttr, returnTypeAttrs);
             }
-            else //if (node is MemberAccessExpressionSyntax memAccessExpr)
+            else
             {
                 //We may be dealing with a field like String.Empty
                 List<String> returnTypeAttrs = new List<string>();
