@@ -11,7 +11,7 @@ using System.Threading.Tasks;
 
 namespace SharpChecker
 {
-    class NullnessAnalyzer : EncryptedAnalyzer
+    class NullnessAnalyzer : SCBaseAnalyzer
     {
         private const string DiagnosticId = "NullnessChecker";
         private const string Title = "Error in attribute applications";
@@ -20,6 +20,7 @@ namespace SharpChecker
         private const string Category = "Syntax";
         private static DiagnosticDescriptor NullnessRule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
 
+        [return:NonNull]
         public override Dictionary<string, DiagnosticDescriptor> GetRules()
         {
             var dict = new Dictionary<string, DiagnosticDescriptor>

@@ -38,6 +38,7 @@
     <Compile Include="attributes\EncryptedAttribute.cs" />
     <Compile Include="attributes\NullnessAttributes.cs" />
     <Compile Include="attributes\SubtypeOfAttribute.cs" />
+    <Compile Include="attributes\TaintedAttribute.cs" />
     <Compile Include="CodeFixProvider.cs" />
     <Compile Include="EncryptedAnalyzer.cs" />
     <Compile Include="Enums.cs" />
@@ -54,6 +55,8 @@
       <DesignTime>True</DesignTime>
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
+    <Compile Include="TaintedAnalyzer.cs" />
+    <Compile Include="TaintedSyntaxWalker.cs" />
   </ItemGroup>
   <ItemGroup>
     <EmbeddedResource Include="Resources.resx">

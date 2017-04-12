@@ -209,14 +209,17 @@ namespace SharpChecker.Test
                         double inflation = grade + 1;
                         grades.Add(inflation);
                     }
-
+                    //[return:Encrypted]
                     public override List<string> GetClasses()
                     {
                         return new List<string>() { ""CSCI720"" };
+                        //return myList;
                     }
 
                     [Encrypted]
                     private double average;
+                    [Encrypted]
+                    private List<string> myList = new List<string>() { ""CSCI720"" };
                 }";
             var test = String.Concat(baseClass, overridingClass);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 63, 50) };

@@ -1,0 +1,22 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio 15
+VisualStudioVersion = 15.0.26403.3
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TaintedSandbox", "TaintedSandbox\TaintedSandbox.csproj", "{BBDA3DD7-D290-41C1-99D5-7FF189427EEC}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{BBDA3DD7-D290-41C1-99D5-7FF189427EEC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BBDA3DD7-D290-41C1-99D5-7FF189427EEC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BBDA3DD7-D290-41C1-99D5-7FF189427EEC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BBDA3DD7-D290-41C1-99D5-7FF189427EEC}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
