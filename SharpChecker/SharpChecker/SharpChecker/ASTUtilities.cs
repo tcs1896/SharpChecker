@@ -24,6 +24,42 @@ namespace SharpChecker
         private static Dictionary<string, DiagnosticDescriptor> rulesDict = new Dictionary<string, DiagnosticDescriptor>();
 
         /// <summary>
+        /// Returns a collection of diagnostic descriptors to the DiagnosticAnalyzer which drives the analysis.
+        /// We need some mechanism for additional type systems in plug into this and add to the list  
+        /// of supported diagnostics.  We could instantiate an object of another class which has a method to return these.
+        /// Type system creators could then override that method to add their own diagnostics to the list before
+        /// invoking the base functionality, so that the whole accumulated list is returned here.
+        /// </summary>
+        /// <returns>The rules that we will enforce</returns>
+        public static ImmutableArray<DiagnosticDescriptor> GetRules()
+        {
+            List<DiagnosticDescriptor> descriptors = new List<DiagnosticDescriptor>();
+            //If you add a new analyzer class, make sure to add it to this list.  We can't discover these classes using the
+            //AdditionalFiles mechanism because we don't have the compilation context when assigning the SupportedDiagnostics
+            //property of our DiagnosticAnalyzer instance
+            var analyzerClasses = new SCBaseAnalyzer[] 
+            {
+                new SCBaseAnalyzer(),
+                new EncryptedAnalyzer(),
+                new NullnessAnalyzer(),
+                new TaintedAnalyzer()
+            };
+
+            foreach (var anClass in analyzerClasses)
+            {
+                var rules = anClass.GetRules();
+
+                foreach (var diag in rules)
+                {
+                    rulesDict[diag.Key] = diag.Value;
+                    descriptors.Add(diag.Value);
+                }
+            }
+
+            return ImmutableArray.Create(descriptors.ToArray());
+        }
+
+        /// <summary>
         /// Prior to Roslyn firing actions associated with the expressions and statements we want to analyze
         /// we load the list of attributes with which the analysis will be concerned.
         /// </summary>
@@ -77,35 +113,6 @@ namespace SharpChecker
                 attr.AttributeName = attrToAdd;
                 SharpCheckerAttributes.Add(attr);
             }
-        }
-
-        /// <summary>
-        /// Returns a collection of diagnostic descriptors to the DiagnosticAnalyzer which drives the analysis.
-        /// We need some mechanism for additional type systems in plug into this and add to the list  
-        /// of supported diagnostics.  We could instantiate an object of another class which has a method to return these.
-        /// Type system creators could then override that method to add their own diagnostics to the list before
-        /// invoking the base functionality, so that the whole accumulated list is returned here.
-        /// </summary>
-        /// <returns>The rules that we will enforce</returns>
-        public static ImmutableArray<DiagnosticDescriptor> GetRules()
-        {
-            List<DiagnosticDescriptor> descriptors = new List<DiagnosticDescriptor>();
-            //If you add a new analyzer class, make sure to add it to this list.  We can't discover these classes using the
-            //AdditionalFiles mechanism because we don't have the compilation context when assigning the SupportedDiagnostics
-            //property of our DiagnosticAnalyzer instance
-            var analyzerClasses = new SCBaseAnalyzer[] { new SCBaseAnalyzer(), new EncryptedAnalyzer(), new NullnessAnalyzer() };
-            foreach (var anClass in analyzerClasses)
-            {
-                var rules = anClass.GetRules();
-                
-                foreach (var diag in rules)
-                {
-                    rulesDict[diag.Key] = diag.Value;
-                    descriptors.Add(diag.Value);
-                }
-            }
-
-            return ImmutableArray.Create(descriptors.ToArray());
         }
 
         /// <summary>

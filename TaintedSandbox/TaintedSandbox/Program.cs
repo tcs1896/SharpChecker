@@ -1,6 +1,7 @@
 ﻿using SharpChecker.attributes;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,7 +19,6 @@ namespace TaintedSandbox
             var dbAccess = new DatabaseAccess();
             dbAccess.ExecuteNonQuery(prog.GetCustomers);
 
-            //TODO: Why doesn't this present an error
             dbAccess.ExecuteNonQuery(ReadUserInput());
             var userInput = ReadUserInput();
             dbAccess.ExecuteNonQuery(userInput);
@@ -28,6 +28,7 @@ namespace TaintedSandbox
         public static string ReadUserInput()
         {
             string userInput = "' and drop Customer;";
+            Debug.Assert(true, "userInput:Tainted");
             return userInput;
         }
     }
