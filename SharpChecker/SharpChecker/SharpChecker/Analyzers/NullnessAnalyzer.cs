@@ -1,7 +1,7 @@
 ﻿using Microsoft.CodeAnalysis;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using SharpChecker.attributes;
+using SharpChecker.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;

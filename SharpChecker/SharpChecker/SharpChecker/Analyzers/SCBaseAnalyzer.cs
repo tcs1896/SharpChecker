@@ -2,13 +2,14 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using SharpChecker.attributes;
+using SharpChecker.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using static SharpChecker.Enums;
 
 namespace SharpChecker
 {
@@ -38,7 +39,7 @@ namespace SharpChecker
             var dict = new Dictionary<string, DiagnosticDescriptor>
             {
                 { nameof(SharpCheckerAttribute).Replace("Attribute", ""), Rule },
-                { "Not Implemented", NIRule }
+                { AttributeType.NotImplemented.ToString(), NIRule }
             };
             return dict;
         }

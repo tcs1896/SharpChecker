@@ -2,13 +2,14 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
-using SharpChecker.attributes;
+using SharpChecker.Attributes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Linq;
+using static SharpChecker.Enums;
 
 namespace SharpChecker
 {
@@ -192,8 +193,17 @@ namespace SharpChecker
 
             foreach (var errorAttr in expectedAttributes)
             {
-                var diagnostic = Diagnostic.Create(rulesDict[errorAttr], location, errorAttr);
-                context.ReportDiagnostic(diagnostic);
+                if (rulesDict.ContainsKey(errorAttr))
+                {
+                    var diagnostic = Diagnostic.Create(rulesDict[errorAttr], location, errorAttr);
+                    context.ReportDiagnostic(diagnostic);
+                }
+                else
+                {
+                    var diagnostic = Diagnostic.Create(rulesDict[AttributeType.NotImplemented.ToString()], location, errorAttr);
+                    context.ReportDiagnostic(diagnostic);
+                }
+                
             }
         }
 
@@ -334,7 +344,7 @@ namespace SharpChecker
                 var memAccess = invocationExpr.Expression as MemberAccessExpressionSyntax;
                 if(memAccess == null)
                 {
-                    ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { "Not Implemented" }, null);
+                    ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { AttributeType.NotImplemented.ToString() }, null);
                     return;
                 }
                 else

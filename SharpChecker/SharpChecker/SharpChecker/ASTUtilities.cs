@@ -6,7 +6,7 @@ using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
 using System.Collections.Immutable;
-using SharpChecker.attributes;
+using SharpChecker.Attributes;
 using System.Collections.Concurrent;
 
 namespace SharpChecker

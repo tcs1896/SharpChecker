@@ -4,7 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace SharpChecker.attributes
+namespace SharpChecker.Attributes
 {
     [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)]
     public class EncryptedAttribute : Attribute

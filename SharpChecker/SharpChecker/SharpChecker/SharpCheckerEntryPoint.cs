@@ -7,11 +7,13 @@ using System.IO;
 using System.Collections.Generic;
 using Microsoft.CodeAnalysis.Text;
 using System.Xml.Linq;
+using System;
+using System.Diagnostics;
 
 namespace SharpChecker
 {
     [DiagnosticAnalyzer(LanguageNames.CSharp)]
-    public class SharpCheckerDiagnosticAnalyzer : DiagnosticAnalyzer
+    public class SharpCheckerEntryPoint : DiagnosticAnalyzer
     {
         /// <summary>
         /// Get our list of diagnostics from the Checkers
@@ -47,11 +49,19 @@ namespace SharpChecker
 
                     stream.Position = 0;
 
-                    // Read all the <Term> elements to get the terms.
-                    XDocument document = XDocument.Load(stream);
-                    foreach (XElement termElement in document.Descendants("Checker"))
+                    try
                     {
-                        checkers.Add(termElement.Value);
+                        // Read all the <Term> elements to get the terms.
+                        XDocument document = XDocument.Load(stream);
+                        foreach (XElement termElement in document.Descendants("Checker"))
+                        {
+                            checkers.Add(termElement.Value);
+                        }
+                    }
+                    catch(Exception ex)
+                    {
+                        //If we are unable to parse the document, then we may be editing it currently.
+                        Debug.WriteLine($"Error reading the 'checkers.xml' document.  Exception: {ex.Message}");
                     }
 
                     //Perform any setup necessary for our analysis in the constructor

@@ -19,7 +19,7 @@ namespace SharpChecker.Test
         /// <returns></returns>
         protected override DiagnosticAnalyzer GetCSharpDiagnosticAnalyzer()
         {
-            return new SharpCheckerDiagnosticAnalyzer();
+            return new SharpCheckerEntryPoint();
         }
 
         public string CheckersFilename { get => "nullness.xml"; } 

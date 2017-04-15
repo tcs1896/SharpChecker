@@ -1,4 +1,4 @@
-﻿using SharpChecker.attributes;
+﻿using SharpChecker.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +26,10 @@ namespace PosterSandbox
 
             //This should present a warning.  Also, when using static properties there was no warning.
             //These may be failing for the same reasons.
-            prog.EncryptedProp = Program.Identity<string>(prog.EncryptedProp); 
+            var prog = new Program();
+            prog.EncryptedProp = Program.Identity<string>("Testing");
+            //This is ok
+            prog.EncryptedProp = Program.Identity<string>(prog.EncryptedProp);
         }
     }
 }

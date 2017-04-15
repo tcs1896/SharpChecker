@@ -1,6 +1,7 @@
 ﻿using System.Collections.Generic;
 using System.Linq;
-using SharpChecker.attributes;
+using SharpChecker.Attributes;
+using System.Diagnostics;
 
 namespace InheritanceSandbox
 {
@@ -39,6 +40,7 @@ namespace InheritanceSandbox
         [return:Encrypted]
         public override double GetGPA()
         {
+            //Debug.Assert(true, "average:Unencrypted");
             average = (grades.Sum() / grades.Count()) * 1.05;
             return average;
         }

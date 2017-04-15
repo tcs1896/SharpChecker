@@ -1,5 +1,5 @@
 ﻿using Microsoft.CodeAnalysis;
-using SharpChecker.attributes;
+using SharpChecker.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
