@@ -69,6 +69,12 @@ namespace SharpChecker.Test
         private const string EncryptionProgEnd = @"
             }
 
+            public class Foo
+            {
+                public string FooText { get; set; }
+                
+                public string FooAttrText { get; set; }
+            }
 
             [AttributeUsage(AttributeTargets.All, Inherited = true, AllowMultiple = true)] 
             class NonNullAttribute : Attribute
@@ -120,12 +126,96 @@ namespace SharpChecker.Test
             void SmallerMethod()
             {
                 //Invoking method with appropriate attribute or assertion
+                SendOverInternet(null);
+            }";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 34) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void PassPropWithoutAttrAsNonNullArgument()
+        {
+            var body = @"                
+            void SmallerMethod()
+            {
+                //Invoking method with appropriate attribute or assertion
                 SendOverInternet(RawText);
             }";
 
             var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
             var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 43, 34) };
             VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void PassMemberAccessExprAsNonNullArgument()
+        {
+            var body = @"                
+            void SmallerMethod()
+            {
+                //Invoking method with appropriate attribute or assertion
+                var myFoo = new Foo();
+                SendOverInternet(myFoo.FooText);
+            }";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 44, 34) };
+            VerifyDiag(test, diagLoc);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_MemberAccessExprWithNullCheck()
+        {
+            var body = @"                
+            void SmallerMethod()
+            {
+                var myFoo = new Foo();
+                if(myFoo.FooText != null)
+                {
+                    SendOverInternet(myFoo.FooText);
+                }
+            }";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_MemberAccessExprWithAssertion()
+        {
+            var body = @"                
+            void SmallerMethod()
+            {
+                var myFoo = new Foo();
+                Debug.Assert(myFoo.FooAttrText != null, ""myFoo.FooAttrText:NonNull"")
+                SendOverInternet(myFoo.FooAttrText);
+            }";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_InlineInitialization()
+        {
+            var body = @"                
+            void DifferentMethod()
+            {
+                var myFoo = new Foo();
+                if(myFoo is Foo myBar)
+                {
+                    //Debug.Assert(myFoo.FooAttrText != null, ""myFoo.FooAttrText:NonNull"")
+                    SendOverInternet(myBar.FooText);
+                }
+            }";
+
+            var test = String.Concat(EncryptionProgStart, body, EncryptionProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
         }
 
         /// <summary>

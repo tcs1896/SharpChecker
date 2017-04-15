@@ -436,10 +436,16 @@ namespace SharpChecker
                     var blockContext = invocationContext as BlockSyntax;
                     foreach (var stmt in blockContext.Statements)
                     {
-                        var allOccurances = stmt.DescendantNodes()
+                        IEnumerable<SyntaxNode> allOccurances = stmt.DescendantNodes()
                                             .OfType<IdentifierNameSyntax>()
                                             .Where(idns => idns.Identifier.Text == variable);
-
+                        //If we don't find any identifiers which match, then look for Memeber Access expressions
+                        if(allOccurances.Count() == 0)
+                        {
+                            allOccurances = stmt.DescendantNodes()
+                                            .OfType<MemberAccessExpressionSyntax>()
+                                            .Where(maes => maes.ToString() == variable);
+                        }
 
                         //Modify the attribute associated with the syntax node
                         foreach (var occur in allOccurances)

@@ -53,7 +53,17 @@ namespace SharpChecker
         internal override void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, SyntaxNode node)
         {
             //Look for a guard which checks for null and refine the type
-            if (node is IdentifierNameSyntax ident)
+            ExpressionSyntax ident = null;
+            if(node is IdentifierNameSyntax)
+            {
+                ident = node as IdentifierNameSyntax;
+            }
+            else if(node is MemberAccessExpressionSyntax)
+            {
+                ident = node as MemberAccessExpressionSyntax;
+            }
+
+            if (ident != null)
             {
                 if(expectedAttributes != null && expectedAttributes.Count() > 0)
                 {

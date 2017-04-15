@@ -21,7 +21,7 @@ namespace SharpChecker
         private const string MessageFormat = "Attribute application error {0}";
         private const string Description = "There is a mismatch between the effective attribute and the one expected";
         private const string Category = "Syntax";
-        private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
+        private static DiagnosticDescriptor Rule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: Description);
 
         //This is used to indicate when something has not yet been implemented
         private const string NIDiagnosticId = "NotImplementedId";
@@ -29,7 +29,7 @@ namespace SharpChecker
         private const string NIMessageFormat = "This use case has not been implemented. {0}";
         private const string NIDescription = "The checker applied doesn't handle this use case";
         private const string NICategory = "Syntax";
-        private static DiagnosticDescriptor NIRule = new DiagnosticDescriptor(NIDiagnosticId, NITitle, NIMessageFormat, NICategory, DiagnosticSeverity.Error, isEnabledByDefault: true, description: NIDescription);
+        private static DiagnosticDescriptor NIRule = new DiagnosticDescriptor(NIDiagnosticId, NITitle, NIMessageFormat, NICategory, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: NIDescription);
 
         public ASTUtilities ASTUtil { get; set; }
 
