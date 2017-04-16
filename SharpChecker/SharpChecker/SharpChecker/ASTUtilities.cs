@@ -246,12 +246,17 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void VerifyTypeAnnotations(SemanticModelAnalysisContext context)
         {
+            //If we don't have any analyzers then there is nothing to validate, so simply return
+            if(analyzers == null || analyzers.Count() == 0) { return; }
+
             foreach(var analyzer in analyzers)
             {
                 var walkerType = analyzer.GetSyntaxWalkerType();
                 var walker = (SCBaseSyntaxWalker)Activator.CreateInstance(walkerType, rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);
                 if (analyzer == null) { continue; }
-                walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
+                var treeRoot = context.SemanticModel?.SyntaxTree?.GetRoot();
+                if (treeRoot == null) { continue; }
+                walker.Visit(treeRoot);
             }
 
             //var walker = new NullnessSyntaxWalker(rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);

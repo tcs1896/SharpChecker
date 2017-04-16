@@ -83,7 +83,10 @@ namespace SharpChecker
             }
 
             //Verify the expression being returned has the appropriate annotation
-            VerifyExpectedAttrsInSyntaxNode(expectedAttrs, node.Expression);
+            if (node.Expression != null)
+            {
+                VerifyExpectedAttrsInSyntaxNode(expectedAttrs, node.Expression); 
+            }
         }
 
         /// <summary>
@@ -384,7 +387,10 @@ namespace SharpChecker
                 //type check.  However, there is some candidate analysis while the code is incomplete.
                 if (i < argumentList.Arguments.Count())
                 {
-                    VerifyExpectedAttrsInSyntaxNode(expectedAttributes[i], argumentList.Arguments[i].Expression);
+                    if (argumentList.Arguments[i].Expression != null)
+                    {
+                        VerifyExpectedAttrsInSyntaxNode(expectedAttributes[i], argumentList.Arguments[i].Expression);
+                    }
                 }
             }
         }
@@ -525,8 +531,12 @@ namespace SharpChecker
             else if (node is ConditionalExpressionSyntax conditional)
             {
                 //Verify each branch of a ternary conditional expression
+                Debug.Assert(conditional.WhenTrue != null, "conditional.WhenTrue:NonNull");
                 VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenTrue);
-                VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenFalse);
+                if (conditional.WhenFalse != null)
+                {
+                    VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenFalse);
+                }
             }
             else if (node is LiteralExpressionSyntax argLit)
             {
