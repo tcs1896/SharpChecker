@@ -110,17 +110,20 @@ namespace SharpChecker
         {
             //This will store the method associated with the invocation expression
             IMethodSymbol memberSymbol = null;
-            var identifierNameExpr = invocationExpr.Expression as IdentifierNameSyntax;
 
-            if (identifierNameExpr != null)
+            if (invocationExpr.Expression is IdentifierNameSyntax identifierNameExpr)
             {
                 memberSymbol = context.SemanticModel.GetSymbolInfo(identifierNameExpr).Symbol as IMethodSymbol;
             }
-            else
+            else if (invocationExpr.Expression is MemberAccessExpressionSyntax memAccessExpr)
             {
-                if (invocationExpr.Expression is MemberAccessExpressionSyntax memAccessExpr)
+                memberSymbol = context.SemanticModel.GetSymbolInfo(memAccessExpr).Symbol as IMethodSymbol;
+            }
+            else if (invocationExpr.Expression is MemberBindingExpressionSyntax memBindExpr)
+            {
+                if (memBindExpr.Name is IdentifierNameSyntax identNameSyn)
                 {
-                    memberSymbol = context.SemanticModel.GetSymbolInfo(memAccessExpr).Symbol as IMethodSymbol;
+                    memberSymbol = context.SemanticModel.GetSymbolInfo(identNameSyn).Symbol as IMethodSymbol;
                 }
             }
 
@@ -244,26 +247,19 @@ namespace SharpChecker
             if (expr is IdentifierNameSyntax identifierName)
             {
                 List<string> attrs = ASTUtil.GetAttributes(context, identifierName);
-
-                //If we didn't find any annotations then we return the appropriate enum value indicating as much
                 if (attrs.Count() > 0)
                 {
                     //Add the list of expected attributes to the dictionary
                     ASTUtil.AnnotationDictionary.TryAdd(identifierName, new List<List<string>>() { attrs });
                 }
             }
-            else
+            else if (expr is MemberAccessExpressionSyntax memAccess)
             {
-                if (expr is MemberAccessExpressionSyntax memAccess)
+                List<string> memAttrs = ASTUtil.GetAttributes(context, memAccess);
+                if (memAttrs.Count() > 0)
                 {
-                    List<string> memAttrs = ASTUtil.GetAttributes(context, memAccess);
-
-                    //If we didn't find any annotations then we return the appropriate enum value indicating as much
-                    if (memAttrs.Count() > 0)
-                    {
-                        //Add the list of expected attributes to the dictionary
-                        ASTUtil.AnnotationDictionary.TryAdd(memAccess, new List<List<string>>() { memAttrs });
-                    }
+                    //Add the list of expected attributes to the dictionary
+                    ASTUtil.AnnotationDictionary.TryAdd(memAccess, new List<List<string>>() { memAttrs });
                 }
             }
         }

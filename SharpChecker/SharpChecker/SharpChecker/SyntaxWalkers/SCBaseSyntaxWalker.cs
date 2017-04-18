@@ -71,7 +71,7 @@ namespace SharpChecker
         {
             //Determine the expected return attributes of this method
             SyntaxNode parent = node.Parent;
-            while(!(parent is MethodDeclarationSyntax))
+            while(!(parent is MethodDeclarationSyntax) && parent != null)
             {
                 parent = parent.Parent;
             }
@@ -80,6 +80,10 @@ namespace SharpChecker
             {
                 var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDef);
                 expectedAttrs = GetSharpCheckerAttributeStrings(methodSymbol.GetReturnTypeAttributes());
+            }
+            else
+            {
+                return;
             }
 
             //Verify the expression being returned has the appropriate annotation
@@ -327,6 +331,16 @@ namespace SharpChecker
                         returnTypeAttrs = AnnotationDictionary[identifier]?.FirstOrDefault();
                     }
                     break;
+                case SyntaxKind.ConditionalAccessExpression:
+                    if(assignmentExpression.Right is ConditionalAccessExpressionSyntax condAccess)
+                    {
+                        if (condAccess.WhenNotNull is InvocationExpressionSyntax whenNNInvocationExpr
+                        && AnnotationDictionary.ContainsKey(whenNNInvocationExpr.Expression))
+                        {
+                            returnTypeAttrs = AnnotationDictionary[whenNNInvocationExpr.Expression].FirstOrDefault();
+                        }
+                    }
+                    break;
             }
 
             //If we haven't found a match then present a diagnotic error
@@ -347,8 +361,12 @@ namespace SharpChecker
                 var memAccess = invocationExpr.Expression as MemberAccessExpressionSyntax;
                 if(memAccess == null)
                 {
-                    ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { AttributeType.NotImplemented.ToString() }, null);
-                    return;
+                    var memBindAccess = invocationExpr.Expression as MemberBindingExpressionSyntax;
+                    if (memBindAccess == null)
+                    {
+                        ReportDiagsForEach(invocationExpr.GetLocation(), new List<string>() { AttributeType.NotImplemented.ToString() }, null);
+                        return;
+                    }
                 }
                 else
                 {

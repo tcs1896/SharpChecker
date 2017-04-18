@@ -37,10 +37,10 @@ namespace SharpChecker.Test
                 class TypeName
                 {   
                     [NonNull]
-                    public string NonNullProp { get; set; }
+                    public static string NonNullProp { get; set; }
                     [MaybeNull]
-                    public string MaybeNullProp { get; set; }
-
+                    public static string MaybeNullProp { get; set; }
+                    public static string NoAttrProp { get; set; }
 
                     static void Main(string[] args)
                     {";
@@ -54,6 +54,24 @@ namespace SharpChecker.Test
                     public void PrintGreeting([NonNull] string greeting)
                     {
                         Console.WriteLine($""Hello {greeting}"");
+                    }
+
+                    public string Self(string self)
+                    {
+                        return self;
+                    }
+
+                    [return:NonNull]
+                    public string NonNullSelf()
+                    {
+                        string self = ""Test"";
+                        Debug.Assert(self != null, ""self:NonNull"");
+                        return self;
+                    }
+
+                    public TypeName Create()
+                    {
+                        return new TypeName();
                     }
                 }
 
@@ -110,8 +128,47 @@ namespace SharpChecker.Test
                 MaybeNullProp = ""literal"";";
 
             var test = String.Concat(ProgStart, body, ProgEnd);
+            
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_NullPropogatingOperator()
+        {
+            var body = @"                
+                //--Acceptable Cases--//
+                TypeName tn = new TypeName();
+                NoAttrProp = tn.Self()?.ToString();";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
 
             VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void NoDiagnosticsResult_NullPropogatingOperatorWithAttr()
+        {
+            var body = @"                
+                //--Acceptable Cases--//
+                var tn = new TypeName();
+                NonNullProp = tn.Create()?.NonNullSelf();";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+
+            VerifyCSharpDiagnostic(test, CheckersFilename);
+        }
+
+        [TestMethod]
+        public void AssigningToNullPropogatingOperatorResultWithoutAttr()
+        {
+            var body = @"                
+                //--Error Cases--//
+                TypeName tn = new TypeName();
+                NonNullProp = tn.Self()?.Self();";
+
+            var test = String.Concat(ProgStart, body, ProgEnd);
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 23, 31) };
+            VerifyDiag(test, diagLoc);
         }
 
         [TestMethod]

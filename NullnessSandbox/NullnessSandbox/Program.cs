@@ -12,8 +12,8 @@ namespace NullnessSandbox
             var prog = new Program();
             prog.SendText();
             Console.ReadLine();
-            //Debug.Assert(prog.RawText != null, "RawText:NonNull");
-            //prog.SendOverInternet(prog.RawText);
+            Debug.Assert(prog.RawText != null, "prog.RawText:NonNull");
+            prog.SendOverInternet(prog.RawText);
         }
 
         public int SendOverInternet([NonNull] String msg)
