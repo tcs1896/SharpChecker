@@ -502,7 +502,7 @@ namespace SharpChecker
         /// <param name="node">The node which is being analyzed</param>
         internal virtual void VerifyExpectedAttrsInSyntaxNode([NonNull] List<string> expectedAttributes, [NonNull] SyntaxNode node)
         {
-            //If there are no expected attributes, or there is no node to analyze then bail
+            //If there are no expected attributes, or there is no node to analyze then short circuit
             if(expectedAttributes == null || expectedAttributes.Count() == 0 || node == null) { return; }
 
             //Need to make a local copy the expected attributes in case we recurse and use the same original
