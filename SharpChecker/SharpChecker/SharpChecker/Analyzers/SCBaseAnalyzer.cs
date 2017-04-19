@@ -6,6 +6,7 @@ using SharpChecker.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -41,6 +42,7 @@ namespace SharpChecker
                 { nameof(SharpCheckerAttribute).Replace("Attribute", ""), Rule },
                 { AttributeType.NotImplemented.ToString(), NIRule }
             };
+            Debug.Assert(dict != null, "dict:NonNull");
             return dict;
         }
 

@@ -3,6 +3,7 @@ using SharpChecker.Attributes;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -18,12 +19,14 @@ namespace SharpChecker
         private const string Category = "Syntax";
         private static DiagnosticDescriptor EncryptionRule = new DiagnosticDescriptor(DiagnosticId, Title, MessageFormat, Category, DiagnosticSeverity.Error, isEnabledByDefault: true, description: Description);
 
+        [return: NonNull]
         public override Dictionary<string, DiagnosticDescriptor> GetRules()
         {
             var dict = new Dictionary<string, DiagnosticDescriptor>
             {
                 { nameof(EncryptedAttribute).Replace("Attribute", ""), EncryptionRule }
             };
+            Debug.Assert(dict != null, "dict:NonNull");
             return dict;
         }
 

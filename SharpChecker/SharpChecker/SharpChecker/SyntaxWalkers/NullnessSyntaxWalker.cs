@@ -2,6 +2,7 @@
 using Microsoft.CodeAnalysis.CSharp;
 using Microsoft.CodeAnalysis.CSharp.Syntax;
 using Microsoft.CodeAnalysis.Diagnostics;
+using SharpChecker.Attributes;
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -50,7 +51,7 @@ namespace SharpChecker
         /// </summary>
         /// <param name="expectedAttributes">The expected attributes</param>
         /// <param name="node">The syntax node</param>
-        internal override void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, SyntaxNode node)
+        internal override void VerifyExpectedAttrsInSyntaxNode([NonNull] List<string> expectedAttributes, [NonNull] SyntaxNode node)
         {
             //Look for a guard which checks for null and refine the type
             ExpressionSyntax ident = null;

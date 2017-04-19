@@ -76,6 +76,7 @@ namespace SharpChecker
                 parent = parent.Parent;
             }
             var expectedAttrs = new List<string>();
+            Debug.Assert(expectedAttrs != null, "expectedAttrs:NonNull");
             if (parent is MethodDeclarationSyntax methodDef)
             {
                 var methodSymbol = context.SemanticModel.GetDeclaredSymbol(methodDef);
@@ -249,6 +250,7 @@ namespace SharpChecker
         /// </summary>
         /// <param name="attrDataCollection"></param>
         /// <returns></returns>
+        [return:NonNull]
         internal List<String> GetSharpCheckerAttributeStrings(ImmutableArray<AttributeData> attrDataCollection)
         {
             var attrStrings = new List<String>();
@@ -263,7 +265,7 @@ namespace SharpChecker
                     attrStrings.Add(att);
                 }
             }
-
+            Debug.Assert(attrStrings != null, "attrStrings:NonNull");
             return attrStrings;
         }
 
@@ -407,7 +409,9 @@ namespace SharpChecker
                 {
                     if (argumentList.Arguments[i].Expression != null)
                     {
-                        VerifyExpectedAttrsInSyntaxNode(expectedAttributes[i], argumentList.Arguments[i].Expression);
+                        Debug.Assert(expectedAttributes[i] != null, "expectedAttrsI:NonNull");
+                        var expectedAttrsI = expectedAttributes[i];
+                        VerifyExpectedAttrsInSyntaxNode(expectedAttrsI, argumentList.Arguments[i].Expression);
                     }
                 }
             }
@@ -479,7 +483,6 @@ namespace SharpChecker
                                 //TODO: We should really be replacing the appropriate attribute with the new one instead of
                                 //replacing all attributes.  The correct one is the one in the attribute hierarchy of the new one.
                                 AnnotationDictionary[occur] = new List<List<string>>() { new List<string>() { attribute } };
-                                //ReplaceAttributeList(occur, attribute);
                             }
                             else
                             {
@@ -491,40 +494,13 @@ namespace SharpChecker
             }
         }
 
-        public void ReplaceAttributeList(SyntaxNode synNode, string attribute)
-        {
-
-            AnnotationDictionary[synNode] = new List<List<string>>() { new List<string>() { attribute } };
-            //List<string> toUpdate = AnnotationDictionary[synNode][0];
-            //foreach (string attr in toUpdate)
-            //{
-            //    foreach (var interest in attributesOfInterest)
-            //    {
-            //        bool isInHierarchy = IsInHeirarchy(interest);
-            //    }
-            //}
-
-            //Node toReplace;
-            //foreach(var attr in attributesOfInterest)
-            //{
-            //    if(attr.AttributeName == attribute)
-            //    {
-
-            //    }
-            //}
-        }
-
-        //private bool IsInHeirarchy(Node interest)
-        //{
-        //    if(interest.AttributeName)
-        //}
 
         /// <summary>
         /// Used to confirm that the expression in node has the expected attributes
         /// </summary>
         /// <param name="expectedAttributes">A collection of expected attributes</param>
         /// <param name="node">The node which is being analyzed</param>
-        internal virtual void VerifyExpectedAttrsInSyntaxNode(List<string> expectedAttributes, [NonNull] SyntaxNode node)
+        internal virtual void VerifyExpectedAttrsInSyntaxNode([NonNull] List<string> expectedAttributes, [NonNull] SyntaxNode node)
         {
             //If there are no expected attributes, or there is no node to analyze then bail
             if(expectedAttributes == null || expectedAttributes.Count() == 0 || node == null) { return; }
@@ -550,6 +526,7 @@ namespace SharpChecker
             {
                 //Verify each branch of a ternary conditional expression
                 Debug.Assert(conditional.WhenTrue != null, "conditional.WhenTrue:NonNull");
+                Debug.Assert(expectedAttr != null, "expectedAttr:NonNull");
                 VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenTrue);
                 if (conditional.WhenFalse != null)
                 {
