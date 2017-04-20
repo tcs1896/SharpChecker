@@ -51,7 +51,7 @@ namespace SharpChecker
 
                     try
                     {
-                        // Read all the <Term> elements to get the terms.
+                        // Read all the <Checker> elements to get the checkers.
                         XDocument document = XDocument.Load(stream);
                         foreach (XElement termElement in document.Descendants("Checker"))
                         {

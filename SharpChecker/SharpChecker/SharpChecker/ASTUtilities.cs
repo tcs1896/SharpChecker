@@ -20,15 +20,12 @@ namespace SharpChecker
         public List<Node> SharpCheckerAttributes = new List<Node>();
         //The list of analyzers which were specified in the checkers.xml file in the target project
         private List<SCBaseAnalyzer> analyzers = new List<SCBaseAnalyzer>();
-        //A dictionary mapping the attribute to the associated rule.  Used in the walker class to register diagnostics.
+        //A dictionary mapping an attribute to the associated rule.  Used in the syntax walker classes to register diagnostics.
         private static Dictionary<string, DiagnosticDescriptor> rulesDict = new Dictionary<string, DiagnosticDescriptor>();
 
         /// <summary>
         /// Returns a collection of diagnostic descriptors to the DiagnosticAnalyzer which drives the analysis.
-        /// We need some mechanism for additional type systems in plug into this and add to the list  
-        /// of supported diagnostics.  We could instantiate an object of another class which has a method to return these.
-        /// Type system creators could then override that method to add their own diagnostics to the list before
-        /// invoking the base functionality, so that the whole accumulated list is returned here.
+        /// Type system creators should add to the list of analyzers below.
         /// </summary>
         /// <returns>The rules that we will enforce</returns>
         public static ImmutableArray<DiagnosticDescriptor> GetRules()
@@ -45,6 +42,7 @@ namespace SharpChecker
                 new TaintedAnalyzer()
             };
 
+            //Ask each of the analzyers for the associated rules
             foreach (var anClass in analyzerClasses)
             {
                 var rules = anClass.GetRules();
@@ -60,7 +58,7 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Prior to Roslyn firing actions associated with the expressions and statements we want to analyze
+        /// Prior to Roslyn firing actions associated with the expressions and statements we want to analyze,
         /// we load the list of attributes with which the analysis will be concerned.
         /// </summary>
         public ASTUtilities(List<string> checkers)
@@ -174,7 +172,6 @@ namespace SharpChecker
             {
                 //See if we have previously recorded this as a attribute we are interested in
                 string att = RemoveAttributeEnding(attData.AttributeClass.MetadataName);
-                //if (SharpCheckerAttributes.Contains(att))
                 if(SharpCheckerAttributes.Any(nod => nod.AttributeName == att))
                 {
                     retAttrStrings.Add(att);
@@ -185,12 +182,12 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// Helper method which accepts retreives the attributes associated with a symbol
+        /// Helper method which retreives the attributes associated with a symbol
         /// and adds them to our global table with a sn as the key
         /// </summary>
         /// <param name="sn">The syntax node which we are analyzing</param>
         /// <param name="symbol">The symbol associated with the syntax node</param>
-        public void AddSymbolAttributes(SyntaxNode sn, ISymbol symbol)
+        public void AddSymbolAttributes(SyntaxNode sn, [NonNull] ISymbol symbol)
         {
             if (symbol != null)
             {
@@ -200,13 +197,11 @@ namespace SharpChecker
                 //Add the list of expected attributes to the dictionary
                 if (AnnotationDictionary.ContainsKey(sn))
                 {
-                    //We should probably check for duplicates here
                     if (!AnnotationDictionary[sn].Contains(argAttrStrings))
                     {
                         AnnotationDictionary[sn].Add(argAttrStrings);
                     }
                 }
-                //Not sure if this acceptable.  We may need to distinguish between separate instances
                 else
                 {
                     AnnotationDictionary.TryAdd(sn, new List<List<string>>() { argAttrStrings });
@@ -258,37 +253,6 @@ namespace SharpChecker
                 if (treeRoot == null) { continue; }
                 walker.Visit(treeRoot);
             }
-
-            //var walker = new NullnessSyntaxWalker(rulesDict, AnnotationDictionary, context, SharpCheckerAttributes);
-            //walker.Visit(context.SemanticModel.SyntaxTree.GetRoot());
-
-            //A thought about expanding upon the current functionality:
-            //From this point forward we would never need to persist the information which we gain back out to the world so
-            //we could add annotations, and do things such as: upon finding a null check, walk over all references to the
-            //variable checked for null which occur in that block an annotate them as nonnull
-
-            //Preserving the commented sections below for now as a reminder of some false starts.  Need to include this
-            //in the final writeup along with suggested improvements to Roslyn
-
-            //var newCompilation = context.Compilation.ReplaceSyntaxTree(tree, walker.GetTree());
-
-            //var changedArgument = walker.GetTree().GetRoot().GetAnnotatedNodesAndTokens("Parameter");
-            ////The immediate parent is the argumentlistsyntax, the parent of that is the method being invoked
-            ////Getting an error here because the syntax node is not in the tree
-            //var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo(changedArgument.First().Parent.Parent).Symbol as IMethodSymbol;
-
-            //var changedArgument = tree.GetRoot().GetAnnotatedNodesAndTokens("Parameter");
-            //The immediate parent is the argumentlistsyntax, the parent of that is the method being invoked
-            //var iMeth = context.Compilation.GetSemanticModel(tree).GetSymbolInfo(changedArgument.First().Parent.Parent).Symbol as IMethodSymbol;
-
-            ////var changedArgument = context.Compilation.SyntaxTrees.First().GetRoot().GetAnnotatedNodes("Parameter");
-            //if(changedArgument.Count() > 0)
-            //{
-            //    var changed = changedArgument.Count();
-            //}
-
-            //var changedClass = context.Compilation.SyntaxTrees.First().GetRoot().DescendantNodes()
-            //    .Where(n => n.HasAnnotation(syntaxAnnotation)).Single();
         }
     }
 }

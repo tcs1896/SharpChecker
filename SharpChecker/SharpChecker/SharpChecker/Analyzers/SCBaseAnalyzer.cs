@@ -162,7 +162,10 @@ namespace SharpChecker
                 if (argumentList.Arguments[i].Expression is IdentifierNameSyntax argI)
                 {
                     var symbol = context.SemanticModel.GetSymbolInfo(argI).Symbol;
-                    ASTUtil.AddSymbolAttributes(argI, symbol);
+                    if (symbol != null)
+                    {
+                        ASTUtil.AddSymbolAttributes(argI, symbol);
+                    }
                 }
                 else
                 {
@@ -184,11 +187,12 @@ namespace SharpChecker
                     {
                         if (context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol is IFieldSymbol fieldSymbol)
                         {
+                            Debug.Assert(fieldSymbol != null, "fieldSymbol:NonNull");
                             ASTUtil.AddSymbolAttributes(argumentList.Arguments[i].Expression, fieldSymbol);
                         }
-                        else
+                        else if (context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol is IPropertySymbol propertySymbol)
                         {
-                            var propertySymbol = context.SemanticModel.GetSymbolInfo(argumentList.Arguments[i].Expression).Symbol as IPropertySymbol;
+                            Debug.Assert(propertySymbol != null, "propertySymbol:NonNull");
                             ASTUtil.AddSymbolAttributes(argumentList.Arguments[i].Expression, propertySymbol);
                         }
                     }
