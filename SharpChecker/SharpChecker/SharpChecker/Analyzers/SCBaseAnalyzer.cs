@@ -32,8 +32,13 @@ namespace SharpChecker
         private const string NICategory = "Syntax";
         private static DiagnosticDescriptor NIRule = new DiagnosticDescriptor(NIDiagnosticId, NITitle, NIMessageFormat, NICategory, DiagnosticSeverity.Warning, isEnabledByDefault: true, description: NIDescription);
 
+        //Maintain a reference to the ASTUtilities class so that we can leverage common functionality
         public ASTUtilities ASTUtil { get; set; }
 
+        /// <summary>
+        /// Get the rules associated with this analysis
+        /// </summary>
+        /// <returns>SharpChecker and NotImplemented</returns>
         [return:NonNull]
         public virtual Dictionary<string, DiagnosticDescriptor> GetRules()
         {
@@ -46,11 +51,15 @@ namespace SharpChecker
             return dict;
         }
 
+        /// <summary>
+        /// We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
+        /// have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
+        /// to an annotated variable when we can ensure that the value is of the appropriate annotated type.  Finally, we are interested in return
+        /// statements because we need to ensure that the value returned abides by the return attribute.
+        /// </summary>
+        /// <returns>The syntax kinds we are interested in analyzing</returns>
         public virtual SyntaxKind[] GetSyntaxKinds()
         {
-            //We are interested in InvocationExpressions because we need to check that the arguments passed to a method with annotated parameters
-            //have arguments with the same annotations.  We are interested in SimpleAssignmentExpressions because we only want to allow an annotated 
-            //to an annotated variable when we can ensure that the value is of the appropriate annotated type.
             return new SyntaxKind[] { SyntaxKind.InvocationExpression, SyntaxKind.SimpleAssignmentExpression, SyntaxKind.ReturnStatement };
         }
 
@@ -64,11 +73,17 @@ namespace SharpChecker
             return new List<Node>() { new Node() { AttributeName = nameof(SharpCheckerAttribute) } };
         }
 
+        /// <summary>
+        /// This is the link between the Analyzer class the the SyntaxWalker class which will verify
+        /// the associated attributes.  If you implement a SyntaxWalker class which is specific to your
+        /// type system, then you should override this method to inform the framework of the appropriate
+        /// SyntaxWalker class.
+        /// </summary>
+        /// <returns></returns>
         public virtual Type GetSyntaxWalkerType()
         {
             return typeof(SCBaseSyntaxWalker);
         }
-
 
         /// <summary>
         /// Descend into the syntax tree as far as necessary to determine the associated attributes which are expected.
@@ -77,7 +92,7 @@ namespace SharpChecker
         /// <param name="context">The analysis context</param>
         public void AnalyzeExpression(SyntaxNodeAnalysisContext context, SyntaxNode node)
         {
-            //Determine what type of sytax node we are dealing with
+            //Determine the type of sytax node with which we are dealing
             switch (node.Kind())
             {
                 case SyntaxKind.InvocationExpression:
@@ -95,6 +110,12 @@ namespace SharpChecker
             }
         }
 
+        /// <summary>
+        /// Collect the attributes associated with an identifier or expression present
+        /// to the right of a return keyword (i.e. the value being returned)
+        /// </summary>
+        /// <param name="context"></param>
+        /// <param name="returnStmt"></param>
         private void AnalyzeReturnStatement(SyntaxNodeAnalysisContext context, ReturnStatementSyntax returnStmt)
         {
             AnalyzeSubexpression(context, returnStmt.Expression);
@@ -123,30 +144,21 @@ namespace SharpChecker
             }
             else if (invocationExpr.Expression is MemberBindingExpressionSyntax memBindExpr)
             {
+                //This was necessary to support the null propogating dot operator
                 if (memBindExpr.Name is IdentifierNameSyntax identNameSyn)
                 {
                     memberSymbol = context.SemanticModel.GetSymbolInfo(identNameSyn).Symbol as IMethodSymbol;
                 }
             }
 
-            //If we failed to lookup the symbol then bail
-            if (memberSymbol == null)
-            {
-                return;
-            }
+            //If we failed to lookup the symbol then short circuit 
+            if (memberSymbol == null) { return; }
 
             //Grab any attributes associated with the return type of the method
-            //Should we identify the attributes associated with the return type positionally?
-            //These always occur in the first list, then the attributes associated with the 
-            //arguments are tracked in subsequent ones?
             var returnTypeAttrs = memberSymbol.GetReturnTypeAttributes();
             if (returnTypeAttrs.Count() > 0)
             {
                 var retAttrStrings = ASTUtil.GetSharpCheckerAttributeStrings(returnTypeAttrs);
-                //An exception was generated here because we were attempting to add the same name twice.
-                //This leads me to believe that the same identifier occurring in different locations in
-                //the source text may not be distinguished.  We could perhaps introduce a composite key
-                //involving "span" so that we could distinguish uses at different locations in the source text.
                 if (!ASTUtil.AnnotationDictionary.ContainsKey(invocationExpr.Expression))
                 {
                     ASTUtil.AnnotationDictionary.TryAdd(invocationExpr.Expression, new List<List<String>>() { retAttrStrings });
@@ -170,9 +182,6 @@ namespace SharpChecker
                 else
                 {
                     //If this is another invocation expression then we should recurse
-                    //This is an important pattern which should be replicated elsewhere.
-                    //As an example: If we have a binary expression we should recursively 
-                    //analyze the right and left then combine the result - like type checking
                     if (argumentList.Arguments[i].Expression is InvocationExpressionSyntax argInvExpr)
                     {
                         AnalyzeInvocationExpr(context, argInvExpr);
@@ -247,6 +256,11 @@ namespace SharpChecker
             AnalyzeSubexpression(context, assignmentExpression.Right);
         }
 
+        /// <summary>
+        /// Analyze the expression and add the associated attributes to the global symbol table
+        /// </summary>
+        /// <param name="context">The analysis context</param>
+        /// <param name="expr">An expression</param>
         private void AnalyzeSubexpression(SyntaxNodeAnalysisContext context, ExpressionSyntax expr)
         {
             // First check the variable to which we are assigning

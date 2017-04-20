@@ -15,11 +15,22 @@ namespace SharpChecker
 {
     class SCBaseSyntaxWalker : CSharpSyntaxWalker
     {
+        //A dictionary which maps strings used as attributes to their associated rules
         internal Dictionary<string, DiagnosticDescriptor> rulesDict;
+        //The global symbol table which maps syntax nodes to the associated attributes
         internal ConcurrentDictionary<SyntaxNode, List<List<String>>> AnnotationDictionary;
+        //The analysis context which Roslyn provides
         internal SemanticModelAnalysisContext context;
+        //The attributes which have been registered for analysis
         internal List<Node> attributesOfInterest;
 
+        /// <summary>
+        /// This constructor should be called by subclasses, so that the state may be shared by all analyzers
+        /// </summary>
+        /// <param name="rulesDict">A dictionary which maps strings used as attributes to their associated rules</param>
+        /// <param name="annotationDictionary">The global symbol table which maps syntax nodes to the associated attributes</param>
+        /// <param name="context">The analysis context which Roslyn provides</param>
+        /// <param name="attributesOfInterest">The attributes which have been registered for analysis</param>
         public SCBaseSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<Node> attributesOfInterest)
         {
             this.rulesDict = rulesDict;
@@ -28,16 +39,7 @@ namespace SharpChecker
             this.attributesOfInterest = attributesOfInterest;
         }
 
-        /// <summary>
-        /// This is invoked for nodes of all types followed by the more specific Visit
-        /// methods such as VisitInvocationExpression
-        /// </summary>
-        /// <param name="node"></param>
-        //public override void Visit(SyntaxNode node)
-        //{
-        //    base.Visit(node);
-        //}
-
+        #region Visit overrides which call an associated method then invoke the base implementation
         public override void VisitAssignmentExpression(AssignmentExpressionSyntax node)
         {
             VerifyAssignmentExpr(node);
@@ -61,6 +63,7 @@ namespace SharpChecker
             VerifyReturnStmt(node);
             base.VisitReturnStatement(node);
         }
+        #endregion
 
         /// <summary>
         /// If a method has a return attribute, then we need to verify that any return statements
@@ -349,8 +352,6 @@ namespace SharpChecker
             ReportDiagsForEach(assignmentExpression.Right.GetLocation(), expectedAttributes, returnTypeAttrs);
         }
 
-
-
         /// <summary>
         /// If we are invoking a method which has attributes on its formal parameters, then we need to verify that
         /// the arguments passed abide by these annotations
@@ -480,8 +481,6 @@ namespace SharpChecker
                         {
                             if (AnnotationDictionary.ContainsKey(occur))
                             {
-                                //TODO: We should really be replacing the appropriate attribute with the new one instead of
-                                //replacing all attributes.  The correct one is the one in the attribute hierarchy of the new one.
                                 AnnotationDictionary[occur] = new List<List<string>>() { new List<string>() { attribute } };
                             }
                             else
@@ -526,12 +525,10 @@ namespace SharpChecker
             {
                 //Verify each branch of a ternary conditional expression
                 Debug.Assert(conditional.WhenTrue != null, "conditional.WhenTrue:NonNull");
+                Debug.Assert(conditional.WhenTrue != null, "conditional.WhenFalse:NonNull");
                 Debug.Assert(expectedAttr != null, "expectedAttr:NonNull");
                 VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenTrue);
-                if (conditional.WhenFalse != null)
-                {
-                    VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenFalse);
-                }
+                VerifyExpectedAttrsInSyntaxNode(expectedAttr, conditional.WhenFalse);
             }
             else if (node is LiteralExpressionSyntax argLit)
             {
