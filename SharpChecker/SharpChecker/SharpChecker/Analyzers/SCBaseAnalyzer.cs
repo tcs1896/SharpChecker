@@ -64,9 +64,10 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// This class is called during the init phase of an analysis and should be used to
-        /// register attributes for analysis.  Within the method you should use
-        /// <sref>AddAttributeClassToAnalysis</sref> to register each attribute
+        /// This method is called during the init phase of an analysis and should be used to
+        /// register attributes for analysis.  This is also where type annotation hierarchy
+        /// is established.  Each Node has a "Supertypes" collection of Nodes.  An instance
+        /// of a subtype may be used where a supertype is expected.
         /// </summary>
         public virtual List<Node> GetAttributesToUseInAnalysis()
         {
@@ -74,12 +75,12 @@ namespace SharpChecker
         }
 
         /// <summary>
-        /// This is the link between the Analyzer class the the SyntaxWalker class which will verify
+        /// This is the link between the Analyzer class and the SyntaxWalker class which will verify
         /// the associated attributes.  If you implement a SyntaxWalker class which is specific to your
         /// type system, then you should override this method to inform the framework of the appropriate
         /// SyntaxWalker class.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>The type SCBaseSyntaxWalker</returns>
         public virtual Type GetSyntaxWalkerType()
         {
             return typeof(SCBaseSyntaxWalker);
