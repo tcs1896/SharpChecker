@@ -17,14 +17,21 @@ namespace SharpChecker
         /// <summary>
         /// Pass the arguments along to the SCBaseSyntaxWalker constructor
         /// </summary>
-        /// <param name="rulesDict"></param>
-        /// <param name="annotationDictionary"></param>
-        /// <param name="context"></param>
-        /// <param name="attributesOfInterest"></param>
+        /// <param name="rulesDict">A dictionary which maps strings used as attributes to their associated rules</param>
+        /// <param name="annotationDictionary">The global symbol table which maps syntax nodes to the associated attributes</param>
+        /// <param name="context">The analysis context which Roslyn provides</param>
+        /// <param name="attributesOfInterest">The attributes which have been registered for analysis</param>
         public NullnessSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<Node> attributesOfInterest) :
             base(rulesDict, annotationDictionary, context, attributesOfInterest)
         { }
 
+        /// <summary>
+        /// Override the verification of invocation expressions to ensure that when a variable is dereferenced
+        /// it has the appropriate annotated type.  This allows us to present an error when a possibly
+        /// null value is unsafely dereferenced.  We still want to exercise the functionality present in the
+        /// base class, so we conclude by calling the method which we are overridding here.
+        /// </summary>
+        /// <param name="invocationExpr">The invocation expression</param>
         internal override void VerifyInvocationExpr(InvocationExpressionSyntax invocationExpr)
         {
             //If the member being dereferenced may be null then present a diagnostic
@@ -33,10 +40,11 @@ namespace SharpChecker
                 List<List<String>> expectedAttributes = null;
                 if (AnnotationDictionary.ContainsKey(memAccess.Expression))
                 {
+                    string maybeNull = nameof(MaybeNullAttribute).Replace("Attribute", "");
                     expectedAttributes = AnnotationDictionary[memAccess.Expression];
-                    if(expectedAttributes[0].Contains("MaybeNull"))
+                    if(expectedAttributes[0].Contains(maybeNull))
                     {
-                        ReportDiagsForEach(memAccess.Expression.GetLocation(), new List<string>() { "MaybeNull" }, new List<string>());
+                        ReportDiagsForEach(memAccess.Expression.GetLocation(), new List<string>() { maybeNull }, new List<string>());
                     }
                 }
             }
@@ -74,12 +82,6 @@ namespace SharpChecker
                         var condition = ifstmt.Condition;
                         switch(condition.Kind())
                         {
-                            case SyntaxKind.EqualsExpression:
-                                //TODO: We might do something like explicitly checking for null and
-                                //initializeing a value.  However, this won't be a containing block.
-                                //We could also be in the else block of an equals comparison to null.
-                                //Would that be considered a containing block?
-                                break;
                             case SyntaxKind.NotEqualsExpression:
                                 var notEqExpr = condition as BinaryExpressionSyntax;
                                 ExpressionSyntax exprSyn = null;
@@ -103,8 +105,6 @@ namespace SharpChecker
                                         //Update the attribute
                                         if (AnnotationDictionary.ContainsKey(ident))
                                         {
-                                            //TODO: We should really be replacing the MaybeNull attribute with NotNull instead of
-                                            //replacing all attributes with this one.
                                             AnnotationDictionary[ident] = new List<List<string>>() { new List<string>() { "NonNull" } };
                                         }
                                     }
@@ -119,11 +119,19 @@ namespace SharpChecker
             base.VerifyExpectedAttrsInSyntaxNode(expectedAttributes, node);
         }
 
+        /// <summary>
+        /// Get the default attribute which should be applied to string literal expressions
+        /// </summary>
+        /// <returns>NonNull</returns>
         internal override string GetDefaultForStringLiteral()
         {
             return "NonNull";
         }
 
+        /// <summary>
+        /// Get the default attribute which should be applied to null literal expressions
+        /// </summary>
+        /// <returns>NonNull</returns>
         internal override string GetDefaultForNullLiteral()
         {
             return "MaybeNull";
