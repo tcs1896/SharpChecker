@@ -35,10 +35,6 @@
   </PropertyGroup>
   <ItemGroup>
     <Compile Include="ASTUtilities.cs" />
-    <Compile Include="Attributes\EncryptedAttribute.cs" />
-    <Compile Include="Attributes\NullnessAttributes.cs" />
-    <Compile Include="Attributes\SubtypeOfAttribute.cs" />
-    <Compile Include="Attributes\TaintedAttribute.cs" />
     <Compile Include="Analyzers\EncryptedAnalyzer.cs" />
     <Compile Include="Enums.cs" />
     <Compile Include="Node.cs" />
@@ -46,7 +42,6 @@
     <Compile Include="SyntaxWalkers\NullnessSyntaxWalker.cs" />
     <Compile Include="Analyzers\SCBaseAnalyzer.cs" />
     <Compile Include="SyntaxWalkers\SCBaseSyntaxWalker.cs" />
-    <Compile Include="Attributes\SharpCheckerAttribute.cs" />
     <Compile Include="SharpCheckerEntryPoint.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources.Designer.cs">
@@ -131,7 +126,12 @@
   <ItemGroup>
     <AdditionalFiles Include="checkers.xml" />
   </ItemGroup>
-  <ItemGroup />
+  <ItemGroup>
+    <ProjectReference Include="..\..\SharpChecker.Attributes\SharpChecker.Attributes.csproj">
+      <Project>{48db0b59-5a05-4eb4-9574-24a938aab3d6}</Project>
+      <Name>SharpChecker.Attributes</Name>
+    </ProjectReference>
+  </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Target Name="AfterBuild">
     <GetAssemblyIdentity AssemblyFiles="$(OutDir)\$(AssemblyName).dll">
