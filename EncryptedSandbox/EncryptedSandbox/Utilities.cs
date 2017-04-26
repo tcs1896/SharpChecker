@@ -1,4 +1,4 @@
-﻿using SharpChecker.attributes;
+﻿using SharpChecker.Attributes;
 using System;
 
 namespace EncryptedSandbox

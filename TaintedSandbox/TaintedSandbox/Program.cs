@@ -22,6 +22,14 @@ namespace TaintedSandbox
             dbAccess.ExecuteNonQuery(ReadUserInput());
             var userInput = ReadUserInput();
             dbAccess.ExecuteNonQuery(userInput);
+
+            //prog.GetCustomers = await GetSlowString();
+        }
+
+        public async static Task<string> getAsync()
+        {
+            var rtn = await GetSlowString();
+            return rtn;
         }
 
         [return:Tainted]
@@ -31,6 +39,15 @@ namespace TaintedSandbox
             Debug.Assert(true, "userInput:Tainted");
             return userInput;
         }
+
+        [return: Untainted]
+        public static Task<String> GetSlowString()
+        {
+            var myTask = new Task<string>(() => "slow string");
+            Debug.Assert(myTask != null, "myTask:Untainted");
+            return myTask;
+        }
+
     }
 
     class DatabaseAccess

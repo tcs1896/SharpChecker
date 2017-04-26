@@ -32,8 +32,8 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="SharpChecker">
-      <HintPath>..\..\SharpChecker\SharpChecker\SharpChecker\bin\Debug\SharpChecker.dll</HintPath>
+    <Reference Include="SharpChecker.Attributes, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\SharpChecker.1.0.6324.33603\lib\SharpChecker.Attributes.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -50,9 +50,14 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />
+    <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="checkers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Analyzer Include="..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
+    <Analyzer Include="..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>

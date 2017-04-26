@@ -75,7 +75,8 @@
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
-    <Analyzer Include="..\..\packages\SharpChecker.1.0.6316.37149\analyzers\dotnet\cs\SharpChecker.dll" />
+    <Analyzer Include="..\..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
+    <Analyzer Include="..\..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.dll" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CodeAnalysis, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -93,6 +94,9 @@
     <Reference Include="Microsoft.CodeAnalysis.Workspaces, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
       <HintPath>..\..\packages\Microsoft.CodeAnalysis.Workspaces.Common.1.0.1\lib\portable-net45+win8\Microsoft.CodeAnalysis.Workspaces.dll</HintPath>
       <Private>False</Private>
+    </Reference>
+    <Reference Include="SharpChecker.Attributes, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\..\packages\SharpChecker.1.0.6324.33603\lib\SharpChecker.Attributes.dll</HintPath>
     </Reference>
     <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\System.Collections.Immutable.1.1.36\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
@@ -125,12 +129,6 @@
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="checkers.xml" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\..\SharpChecker.Attributes\SharpChecker.Attributes.csproj">
-      <Project>{48db0b59-5a05-4eb4-9574-24a938aab3d6}</Project>
-      <Name>SharpChecker.Attributes</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Target Name="AfterBuild">
