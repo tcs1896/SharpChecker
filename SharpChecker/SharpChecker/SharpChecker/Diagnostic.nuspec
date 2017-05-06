@@ -2,18 +2,17 @@
 <package xmlns="http://schemas.microsoft.com/packaging/2011/08/nuspec.xsd">
   <metadata>
     <id>SharpChecker</id>
-    <version>1.0.0.0</version>
+    <version>1.4.0.0</version>
     <title>SharpChecker</title>
     <authors>Ted Sill with input from Professor Matthew Fluet</authors>
-    <owners>Ted Sill</owners>
-    <licenseUrl>http://LICENSE_URL_HERE_OR_DELETE_THIS_LINE</licenseUrl>
-    <projectUrl>http://PROJECT_URL_HERE_OR_DELETE_THIS_LINE</projectUrl>
-    <iconUrl>http://ICON_URL_HERE_OR_DELETE_THIS_LINE</iconUrl>
+    <owners>techsill</owners>
+    <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
+    <projectUrl>https://github.com/tcs1896/SharpChecker</projectUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>SharpChecker</description>
-    <releaseNotes>Summary of changes made in this release of the package.</releaseNotes>
+    <releaseNotes>Initial release.</releaseNotes>
     <copyright>Copyright</copyright>
-    <tags>SharpChecker, analyzers</tags>
+    <tags>SharpChecker, analyzers, Roslyn, .NET Compiler Platform, Type Annotation</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System" targetFramework="" />
     </frameworkAssemblies>
@@ -23,6 +22,7 @@
   <files>
     <file src="*.dll" target="analyzers\dotnet\cs" exclude="**\Microsoft.CodeAnalysis.*;**\System.Collections.Immutable.*;**\System.Reflection.Metadata.*;**\System.Composition.*" />
     <file src="tools\*.ps1" target="tools\" />
+    <!-- Install the SharpChecker.Attributes.dll in the References of the target application so that they may instrument their code with these attributes -->
     <file src="SharpChecker.Attributes.dll" target="lib" />
   </files>
 </package>

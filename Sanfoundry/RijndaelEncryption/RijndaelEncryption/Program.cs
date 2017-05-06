@@ -9,7 +9,7 @@ using System.IO;
 using System.Security.Cryptography;
 namespace RijndaelManage
 {
-    class RijndaelEncryption
+    public class RijndaelEncryption
     {
         public static void Main()
         {
@@ -37,7 +37,7 @@ namespace RijndaelManage
         }
 
         [return:Encrypted]
-        static byte[] EncryptStringToBytes(string plainText, byte[] Key, byte[] IV)
+        public static byte[] EncryptStringToBytes(string plainText, byte[] Key, byte[] IV)
         {
             if (plainText == null || plainText.Length <= 0)
                 throw new ArgumentNullException("plainText");
@@ -67,7 +67,7 @@ namespace RijndaelManage
             return encrypted;
         }
 
-        static string DecryptStringFromBytes([Encrypted] byte[] cipherText, byte[] Key, byte[] IV)
+        public static string DecryptStringFromBytes([Encrypted] byte[] cipherText, byte[] Key, byte[] IV)
         {
             if (cipherText == null || cipherText.Length <= 0)
                 throw new ArgumentNullException("cipherText");

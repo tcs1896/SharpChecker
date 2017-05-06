@@ -33,8 +33,11 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="RijndaelEncryption">
+      <HintPath>..\..\Sanfoundry\RijndaelEncryption\RijndaelEncryption\bin\Debug\RijndaelEncryption.exe</HintPath>
+    </Reference>
     <Reference Include="SharpChecker.Attributes, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\SharpChecker.1.0.6324.33603\lib\SharpChecker.Attributes.dll</HintPath>
+      <HintPath>..\packages\SharpChecker.1.0.6334.39443\lib\SharpChecker.Attributes.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -60,8 +63,8 @@
     </AdditionalFiles>
   </ItemGroup>
   <ItemGroup>
-    <Analyzer Include="..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
-    <Analyzer Include="..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.dll" />
+    <Analyzer Include="..\packages\SharpChecker.1.0.6334.39443\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
+    <Analyzer Include="..\packages\SharpChecker.1.0.6334.39443\analyzers\dotnet\cs\SharpChecker.dll" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 

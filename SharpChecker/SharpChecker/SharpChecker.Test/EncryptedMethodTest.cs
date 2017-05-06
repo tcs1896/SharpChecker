@@ -135,6 +135,8 @@ namespace SharpChecker.Test
             var overridingClass = @"                
                 class Graduate : Student
                 {
+                    // The method which is being overriden has the [return:Encrypted] attribute,
+                    // so a diagnostic is presented
                     public override double GetGPA()
                     {
                         double average = (grades.Sum() / grades.Count()) * 1.05;
@@ -148,7 +150,7 @@ namespace SharpChecker.Test
                     }
                 }";
             var test = String.Concat(baseClass, overridingClass);
-            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 50, 44) };
+            var diagLoc = new[] { new DiagnosticResultLocation("Test0.cs", 52, 44) };
             VerifyDiag(test, diagLoc);
         }
 

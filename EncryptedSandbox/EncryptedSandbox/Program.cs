@@ -2,6 +2,8 @@
 using System;
 using System.Diagnostics;
 using System.Linq;
+using System.Security.Cryptography;
+using static RijndaelManage.RijndaelEncryption;
 
 namespace EncryptedSandbox
 {
@@ -14,15 +16,33 @@ namespace EncryptedSandbox
             Console.ReadLine();
         }
 
-        [return:Encrypted]
-        public string Encrypt(string text)
+        void SendText()
         {
-            string rtn = text;
-            // Performing the encryption
+            //An [Encrypted] value is returned from the Encrypt method
+            //so this may safely be passed to SendOverInternet which
+            //expects an [Encrypted] argument
+            SendOverInternet(Encrypt(RawText));
+        }
+        public string RawText { get; set; }
+        public int SendOverInternet([Encrypted] byte[] msg)
+        {
+            return Transfer(msg);
+        }
+        [return:Encrypted]
+        public byte[] Encrypt(string text)
+        {
+            byte[] rtn = null;
+            using (RijndaelManaged myRijndael = new RijndaelManaged())
+            {
+                myRijndael.GenerateKey();
+                myRijndael.GenerateIV();
+                rtn = EncryptStringToBytes(text, myRijndael.Key, myRijndael.IV);
+            }
             Debug.Assert(true, "rtn:Encrypted");
             return rtn;
         }
 
+        public static int Transfer(byte[] transmission) { return 15; }
         // Only send encrypted data!
         public int SendOverInternet([Encrypted] String msg)
         {
@@ -31,11 +51,11 @@ namespace EncryptedSandbox
             return 15;
         }
 
-        public string RemoveSpecialChars(string original, int charCode)
-        {
-            // Remove the special characters
-            return original;
-        }
+        //public string RemoveSpecialChars(string original, int charCode)
+        //{
+        //    // Remove the special characters
+        //    return original;
+        //}
 
         public Program ProgramFactory()
         {
@@ -43,9 +63,7 @@ namespace EncryptedSandbox
         }
 
         [Encrypted]
-        public string Ciphertext { get; set; }
-        [SharpChecker]
-        public string RawText { get; set; }
+        public byte[] Ciphertext { get; set; }
 
         [Encrypted]
         public int Result { get; set; }
@@ -53,8 +71,22 @@ namespace EncryptedSandbox
         [NonNull]
         public string Id { get; set; }
 
-        void SendText()
+        [Encrypted]
+        public string EncryptedText { get; set; }
+        //void SetText()
+        //{
+        //    //This causes the diagnostic to fire because the return type of the method
+        //    //doesn't have the appropriate attribute
+        //    EncryptedText = RemoveSpecialChars(plaintext, 3);
+        //}
+        public string RemoveSpecialChars(byte[] original, int charCode)
         {
+            // Remove the special characters
+            return original.ToString();
+        }
+        
+        void second()
+        { 
             Id = null;
             Id = "Unique Identifier 1234";
 
@@ -69,20 +101,17 @@ namespace EncryptedSandbox
             //of Ciphertext, so this should be accepted
             Ciphertext = Encrypt(plaintext);
             //We permit Encrypted values being assigned to unencrypted
-            RawText = Encrypt(plaintext);
+            RawText = EncryptedText;
 
-            //--Error Cases--//
-            //This should cause the diagnostic to fire because the return type of the method
-            //doesn't have the appropriate attribute
-            Ciphertext = RemoveSpecialChars(plaintext, 3);
+
             //Introduce a static method call
             Result = Utilities.ExecuteQuery("Update user.workstatus set status='Hired'");
 
             //This is an example of assigning to a property - at the moment this should present an error
             //because an attribute has been added to the property.  
             new Utilities().MyProperty = new Object();
-            Ciphertext = "";
-            Ciphertext = String.Empty;
+            EncryptedText = "";
+            EncryptedText = String.Empty;
             
             //Random samples
             int[] teamNumbers = new int[] { 12, 23, 27, 44, 56, 80, 82, 88, 93 };
@@ -117,7 +146,7 @@ namespace EncryptedSandbox
             this.ProgramFactory().RemoveSpecialChars(plaintext, 5);
 
             Utilities utils = new Utilities();
-            utils.WriteToDisk(Ciphertext);
+            utils.WriteToDisk(EncryptedText);
 
             //--Error Cases--//
             //This should generate an error because 'RawText' does not have the [Encrypted] attribute
