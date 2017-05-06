@@ -575,6 +575,14 @@ namespace SharpChecker
                 //If we haven't found a match then present a diagnotic error
                 ReportDiagsForEach(node.GetLocation(), expectedAttr, returnTypeAttrs);
             }
+            else if (node is AwaitExpressionSyntax awtExpSyn)
+            {
+                //TODO: build support for await expressions, currently this seems to effectively ingore
+                //await expressions, which could result in a lack of a warning
+                //Debug.Assert(awtExpSyn.Expression != null, "awtExpSyn.Expression:NonNull");
+                //Debug.Assert(expectedAttr != null, "expectedAttr:NonNull");
+                //VerifyExpectedAttrsInSyntaxNode(expectedAttr, awtExpSyn.Expression);
+            }
             else
             {
                 //We may be dealing with a field like String.Empty

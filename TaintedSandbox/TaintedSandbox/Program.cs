@@ -11,20 +11,31 @@ namespace TaintedSandbox
     class Program
     {
         [Untainted]
-        private string GetCustomers = "Select * from dbo.Customers";
-
+        private static string GetCustomers = "Select * from dbo.Customers";
         static void Main(string[] args)
         {
-            var prog = new Program();
             var dbAccess = new DatabaseAccess();
-            dbAccess.ExecuteNonQuery(prog.GetCustomers);
-
+            dbAccess.ExecuteNonQuery(GetCustomers);
             dbAccess.ExecuteNonQuery(ReadUserInput());
+        }
+        [return: Tainted]
+        public static string ReadUserInput()
+        {
+            string userInput = "' and drop Customer;";
+            Debug.Assert(true, "userInput:Tainted");
+            return userInput;
+        }
+
+
+        public static void second()
+        {
+            var dbAccess = new DatabaseAccess();
             var userInput = ReadUserInput();
             dbAccess.ExecuteNonQuery(userInput);
 
             //prog.GetCustomers = await GetSlowString();
         }
+
 
         public async static Task<string> getAsync()
         {
@@ -32,13 +43,6 @@ namespace TaintedSandbox
             return rtn;
         }
 
-        [return:Tainted]
-        public static string ReadUserInput()
-        {
-            string userInput = "' and drop Customer;";
-            Debug.Assert(true, "userInput:Tainted");
-            return userInput;
-        }
 
         [return: Untainted]
         public static Task<String> GetSlowString()
@@ -60,6 +64,14 @@ namespace TaintedSandbox
             {
                 ExecuteNonQuery(SQL, connection);
             }
+        }
+
+        [return:Untainted]
+        public string SanatizeQuery(string query)
+        {
+            string noInjection = String.Empty;
+            Debug.Assert(true, "noInjection:Untainted");
+            return noInjection;
         }
 
         public void ExecuteNonQuery([Untainted] string SQL, Connection connection)

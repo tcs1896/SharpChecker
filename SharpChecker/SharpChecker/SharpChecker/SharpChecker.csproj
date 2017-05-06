@@ -75,8 +75,8 @@
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
-    <Analyzer Include="..\..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
-    <Analyzer Include="..\..\packages\SharpChecker.1.0.6324.33603\analyzers\dotnet\cs\SharpChecker.dll" />
+    <Analyzer Include="..\..\packages\SharpChecker.1.0.6334.41751\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
+    <Analyzer Include="..\..\packages\SharpChecker.1.0.6334.41751\analyzers\dotnet\cs\SharpChecker.dll" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CodeAnalysis, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -96,7 +96,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="SharpChecker.Attributes, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\SharpChecker.1.0.6324.33603\lib\SharpChecker.Attributes.dll</HintPath>
+      <HintPath>..\..\packages\SharpChecker.1.0.6334.41751\lib\SharpChecker.Attributes.dll</HintPath>
     </Reference>
     <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\System.Collections.Immutable.1.1.36\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
@@ -129,6 +129,9 @@
   </ItemGroup>
   <ItemGroup>
     <AdditionalFiles Include="checkers.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Icon.png" />
   </ItemGroup>
   <Import Project="$(MSBuildExtensionsPath32)\Microsoft\Portable\$(TargetFrameworkVersion)\Microsoft.Portable.CSharp.targets" />
   <Target Name="AfterBuild">
