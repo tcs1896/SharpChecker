@@ -21,7 +21,8 @@ namespace SharpChecker
         /// <param name="annotationDictionary">The global symbol table which maps syntax nodes to the associated attributes</param>
         /// <param name="context">The analysis context which Roslyn provides</param>
         /// <param name="attributesOfInterest">The attributes which have been registered for analysis</param>
-        public TaintedSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, SemanticModelAnalysisContext context, List<Node> attributesOfInterest) :
+        public TaintedSyntaxWalker(Dictionary<string, DiagnosticDescriptor> rulesDict, ConcurrentDictionary<SyntaxNode, List<List<String>>> annotationDictionary, 
+            SemanticModelAnalysisContext context, List<Node> attributesOfInterest) :
             base(rulesDict, annotationDictionary, context, attributesOfInterest)
         { }
 

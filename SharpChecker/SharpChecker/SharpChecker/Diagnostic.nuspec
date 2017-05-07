@@ -8,11 +8,12 @@
     <owners>techsill</owners>
     <licenseUrl>http://www.apache.org/licenses/LICENSE-2.0</licenseUrl>
     <projectUrl>https://github.com/tcs1896/SharpChecker</projectUrl>
+    <iconUrl>http://github.com/tcs1896/SharpChecker/blob/master/SharpChecker/SharpChecker/SharpChecker/Icon.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>SharpChecker</description>
     <releaseNotes>Initial release.</releaseNotes>
     <copyright>Copyright</copyright>
-    <tags>SharpChecker, analyzers, Roslyn, .NET Compiler Platform, Type Annotation</tags>
+    <tags>SharpChecker, analyzers, Roslyn, TypeAnnotation</tags>
     <frameworkAssemblies>
       <frameworkAssembly assemblyName="System" targetFramework="" />
     </frameworkAssemblies>
