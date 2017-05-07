@@ -1,11 +1,11 @@
 ## Student: Theodore Sill
 ## Advisor: Professor Matthew Fluet
 
-###B. Thomas Golisano College of Computing and Information Sciences
-###Rochester Institute of Technology
-###Rochester, New York
+### B. Thomas Golisano College of Computing and Information Sciences
+### Rochester Institute of Technology
+### Rochester, New York
 
-###May 2017
+### May 2017
 
 The code in this repository was submitted in partial fulfillment of the requirements for 
 the degree of Master of Science in Computer Science
