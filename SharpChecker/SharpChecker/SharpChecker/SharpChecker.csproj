@@ -63,7 +63,9 @@
       <SubType>Designer</SubType>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-    <None Include="packages.config" />
+    <None Include="packages.config">
+      <SubType>Designer</SubType>
+    </None>
     <None Include="tools\install.ps1">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
@@ -75,8 +77,8 @@
   <ItemGroup>
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.Analyzers.dll" />
     <Analyzer Include="..\..\packages\Microsoft.CodeAnalysis.Analyzers.1.1.0\analyzers\dotnet\cs\Microsoft.CodeAnalysis.CSharp.Analyzers.dll" />
-    <Analyzer Include="..\..\packages\SharpChecker.1.0.6334.41751\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
-    <Analyzer Include="..\..\packages\SharpChecker.1.0.6334.41751\analyzers\dotnet\cs\SharpChecker.dll" />
+    <Analyzer Include="..\..\packages\SharpChecker.1.0.6336.26127\analyzers\dotnet\cs\SharpChecker.Attributes.dll" />
+    <Analyzer Include="..\..\packages\SharpChecker.1.0.6336.26127\analyzers\dotnet\cs\SharpChecker.dll" />
   </ItemGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CodeAnalysis, Version=1.0.0.0, Culture=neutral, PublicKeyToken=31bf3856ad364e35, processorArchitecture=MSIL">
@@ -96,7 +98,7 @@
       <Private>False</Private>
     </Reference>
     <Reference Include="SharpChecker.Attributes, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\..\packages\SharpChecker.1.0.6334.41751\lib\SharpChecker.Attributes.dll</HintPath>
+      <HintPath>..\..\packages\SharpChecker.1.0.6336.26127\lib\SharpChecker.Attributes.dll</HintPath>
     </Reference>
     <Reference Include="System.Collections.Immutable, Version=1.1.36.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a, processorArchitecture=MSIL">
       <HintPath>..\..\packages\System.Collections.Immutable.1.1.36\lib\portable-net45+win8+wp8+wpa81\System.Collections.Immutable.dll</HintPath>
